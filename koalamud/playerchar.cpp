@@ -95,4 +95,18 @@ void PlayerChar::setDesc(ParseDescriptor *desc)
 	connect(desc, SIGNAL(destroyed()), this, SLOT(descriptorClosed()));
 }
 
+/** Load player from database */
+bool PlayerChar::load(void)
+{
+	/* turn on color */
+	_desc->setColor(true);
+	return false;
+}
+
+/** Save player to database */
+bool PlayerChar::save(void)
+{
+	return false;
+}
+
 }; /* end koalamud namespace */

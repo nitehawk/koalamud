@@ -16,12 +16,15 @@
 
 #include <zthread/PoolExecutor.h>
 #include <qapplication.h>
+#include "network.hxx"
 #include "koalastatus.h"
 #include "memory.hxx"
 #include "database.hxx"
 #include "exception.hxx"
 
 namespace koalamud {
+	/* Predeclare socket */
+	class Socket;
 
 /** Main server class
  * This class handles all of the setup and execution of the game engine.  It
@@ -52,6 +55,10 @@ class MainServer
 		bool _background;
 		/** Execution Profile */
 		QString _profile;
+		/** Shutdown Flag - true if we are shutting down */
+		bool shutdown;
+		/** Socket list */
+		QPtrList<Socket> socklist;
 
 	public: /* Base system execution functions */
 		MainServer(int argc, char **argv) throw(koalaexception);
@@ -72,6 +79,11 @@ class MainServer
 		KoalaStatus *statwin(void) { return _statwin; }
 		/** Return true if we are detached from the console */
 		bool isdetached(void) { return _background; }
+		void Shutdown(void) { shutdown = true; }
+		/** Add a socket to the socket list */
+		void addSocktoList(Socket *sock) { socklist.append(sock);}
+		/** Remove a socket from the socket list */
+		void removeSockfromList(Socket *sock) { socklist.remove(sock);}
 		
 	protected: /* Internal utility functions */
 		void parseargs(int argc, char **argv) throw (koalaexception);
@@ -80,9 +92,6 @@ class MainServer
 	public: /* public utility functions */
 		QString versionstring(void);
 		QString usage(void);
-
-		/** Shutdown the game server */
-		void shutdown(int ret) { app()->exit(ret); }
 };
 	
 }; /* end koalamud namespace */

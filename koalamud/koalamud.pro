@@ -13,11 +13,15 @@ CONFIG += debug \
           thread 
 
 core {
-	CONFIG += world cmd gui char
+	CONFIG += world cmd gui char olc
 	SOURCES += main.cpp network.cpp database.cpp memory.cpp logging.cpp
-	SOURCES += help.cpp parser.cpp
 	HEADERS += main.hxx network.hxx database.hxx event.hxx memory.hxx
-	HEADERS += logging.hxx help.hxx exception.hxx parser.hxx
+	HEADERS += logging.hxx exception.hxx
+}
+
+olc {
+	SOURCES += olc.cpp editor.cpp
+	HEADERS += olc.hxx editor.hxx
 }
 
 world {
@@ -32,7 +36,8 @@ char {
 
 cmd {
 	SOURCES += cmd.cpp cmdtree.cpp comm.cpp
-	HEADERS += cmd.hxx cmdtree.hxx comm.hxx
+	SOURCES += help.cpp parser.cpp
+	HEADERS += cmd.hxx cmdtree.hxx comm.hxx help.hxx parser.hxx
 }
 
 gui {

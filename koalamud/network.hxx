@@ -21,6 +21,7 @@
 #include <qserversocket.h>
 #include <qsocket.h>
 #include <qlistview.h>
+#include <zthread/FastRecursiveMutex.h>
 
 /* Predefine classes */
 namespace koalamud {
@@ -93,6 +94,8 @@ class Descriptor : public QSocket
 	protected:
 		/** True if an event is posted */
 		bool outputEventPosted;
+		/** Lock for output event flag */
+		ZThread::FastRecursiveMutex outputEventLock;
 
 	private slots:
 		virtual void readClient(void);
@@ -117,7 +120,7 @@ class ParseDescriptor : public Descriptor
 		virtual ~ParseDescriptor(void);
 
 	public:
-		void setParser(Parser *newparse);
+		void setParser(Parser *newparse, bool del=true);
 		/** Return a pointer to the currently attached parser */
 		Parser *parser(void) { return _parse; }
 

@@ -110,11 +110,13 @@ void Descriptor::readClient(void)
 /** If there is not an unprocessed event for output, post one */
 void Descriptor::notifyOutput(Char *ch)
 {
+	outputEventLock.acquire();
 	if (!outputEventPosted)
 	{
 		outputEventPosted = true;
 		QThread::postEvent(this, new CharOutputEvent(ch));
 	}
+	outputEventLock.release();
 }
 
 /** Connection was closed
@@ -138,6 +140,7 @@ void Descriptor::send(QString data)
 /** Handle incoming events */
 bool Descriptor::event(QEvent *event)
 {
+	outputEventLock.acquire();
 	static bool disconeventposted = false;
 	if (event->type() == EVENT_CHAR_OUTPUT)
 	{
@@ -147,16 +150,21 @@ bool Descriptor::event(QEvent *event)
 		{
 			if (disconeventposted)
 			{
+				outputEventLock.release();
 				delete ce->_ch;
 				delete this;
 				return true;
 			}
 			disconeventposted = true;
 			QThread::postEvent(this, new CharOutputEvent(ce->_ch));
+			outputEventPosted = true;
+			outputEventLock.release();
 		} else {
 		}
+		outputEventLock.release();
 		return true;
 	}
+	outputEventLock.release();
 	return false;
 }
 
@@ -193,9 +201,10 @@ ParseDescriptor::~ParseDescriptor(void)
 }
 
 /** Attach a new parser and delete the old parser */
-void ParseDescriptor::setParser(Parser *newparse)
+void ParseDescriptor::setParser(Parser *newparse, bool del=true)
 {
-	delete _parse;
+	if (del)
+		delete _parse;
 	_parse=newparse;
 }
 

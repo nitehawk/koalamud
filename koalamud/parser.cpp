@@ -195,7 +195,7 @@ void PlayerParser::parseLine(QString line)
 	} 
 	
 	/* Append cmd to the command queue */
-	_ch->queueCommand(cmd, cline.section(' ', 1));
+	_ch->queueCommand(cmd, cmdword + cline.section(' ', 1));
 }
 
 /** Build a player Creation parser

@@ -49,9 +49,20 @@ KOALACMD(cmd_who)
 	ch->sendtochar(str);
 }
 
+KOALACMD(cmd_memstat)
+{
+	QString str;
+	QTextOStream os(&str);
+
+	os << poolalloc << endl;;
+
+	ch->sendtochar(str);
+}
+
 void initcmddict(void)
 {
 	cmddict.insert(QString("quit"), new cmdentry_t("quit", cmd_quit));
 	cmddict.insert(QString("who"), new cmdentry_t("who", cmd_who));
+	cmddict.insert(QString("memstat"), new cmdentry_t("memstat", cmd_memstat));
 	initcommcmddict();
 }

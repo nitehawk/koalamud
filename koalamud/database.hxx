@@ -35,6 +35,7 @@ namespace koalamud {
 
 			/** Return database status */
 			bool isonline(void) { return dbonline; }
+			QValueList<int> getListenPorts(QString profile);
 
 		protected:
 			/** Flag to track db status during startup */

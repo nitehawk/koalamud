@@ -1,0 +1,75 @@
+<!DOCTYPE kdevelop>
+<kdevelop>
+<general>
+<author>Matthew Schlegel</author>
+  <email>nitehawk@pykon.goldbuilders.com</email>
+  <projectmanagement>KDevTrollProject</projectmanagement>
+  <primarylanguage>C++</primarylanguage>
+  <keywords>
+<keyword>Qt</keyword>  </keywords>
+  <ignoreparts>
+<part>KDevCvs</part>
+   <part>KDevPerforce</part>
+   <part>KDevVisualBoyAdvance</part>  </ignoreparts> </general>
+ <kdevfileview>
+<groups>
+<group pattern="*.cpp;*.cxx;*.c" name="Sources" />
+   <group pattern="*.h;*.hxx" name="Headers" />
+   <group pattern="*.ui" name="User Interface" />
+   <group pattern="*.png" name="Icons" />
+   <group pattern="*" name="Others" />  </groups>
+  <tree>
+<hidenonprojectfiles>false</hidenonprojectfiles>
+   <hidepatterns>*.o,*.lo,CVS</hidepatterns>  </tree> </kdevfileview>
+ <kdevdoctreeview>
+<ignoretocs>
+<toc>gtk</toc>
+   <toc>gnustep</toc>
+   <toc>python</toc>
+   <toc>php</toc>
+   <toc>perl</toc>  </ignoretocs> </kdevdoctreeview>
+ <kdevdebugger>
+<general>
+<dbgshell>libtool</dbgshell>
+   <programargs/>
+   <gdbpath/>
+   <breakonloadinglibs>true</breakonloadinglibs>
+   <separatetty>false</separatetty>
+   <floatingtoolbar>false</floatingtoolbar>  </general>
+  <display>
+<staticmembers>false</staticmembers>
+   <demanglenames>true</demanglenames>  </display>
+  <breakpoints/> </kdevdebugger>
+ <cppsupportpart>
+<codecompletion>
+<enablecc>true</enablecc>
+   <codehinting outputview="1" enablech="1" selectview="0" />  </codecompletion>
+  <classstore>
+<enablepcs>false</enablepcs>
+   <enablepp>false</enablepp>
+   <preparsing/>  </classstore>
+  <filetemplates>
+<choosefiles>true</choosefiles>
+   <interfaceURL>/home/nitehawk/src/koalamud/koalamud/template/new.hxx</interfaceURL>
+   <implementationURL>/home/nitehawk/src/koalamud/koalamud/template/new.cxx</implementationURL>
+   <interfacesuffix>.hxx</interfacesuffix>
+   <implementationsuffix>.cpp</implementationsuffix>
+   <lowercasefilenames>true</lowercasefilenames>  </filetemplates> </cppsupportpart>
+ <kdevclassview>
+<folderhierarchy>true</folderhierarchy>
+  <depthoffolders>2</depthoffolders> </kdevclassview>
+ <kdevcvs>
+<cvsoptions/>
+  <commitoptions/>
+  <updateoptions>-dP</updateoptions>
+  <addoptions/>
+  <removeoptions>-f</removeoptions>
+  <diffoptions/>
+  <logoptions/> </kdevcvs>
+ <workspace>
+<openfiles>
+<file url="file:/home/nitehawk/src/koalamud/koalamud/playerchar.hxx" />
+   <file url="file:/home/nitehawk/src/koalamud/koalamud/playerchar.cpp" />
+   <file url="file:/home/nitehawk/src/koalamud/koalamud/koalastatus.h" />
+   <file url="file:/home/nitehawk/src/koalamud/koalamud/koalastatus.cpp" />
+   <file url="file:/home/nitehawk/src/koalamud/koalamud/network.cpp" />  </openfiles> </workspace></kdevelop>

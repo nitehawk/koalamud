@@ -1,0 +1,131 @@
+<!DOCTYPE UI><UI version="3.0" stdsetdef="1">
+<class>NewNetworkPortDlg</class>
+<widget class="QDialog">
+    <property name="name">
+        <cstring>NewNetworkPortDlg</cstring>
+    </property>
+    <property name="geometry">
+        <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>268</width>
+            <height>101</height>
+        </rect>
+    </property>
+    <property name="caption">
+        <string>Select Listen Port</string>
+    </property>
+    <widget class="QLayoutWidget">
+        <property name="name">
+            <cstring>Layout3</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>0</y>
+                <width>226</width>
+                <height>80</height>
+            </rect>
+        </property>
+        <vbox>
+            <property name="name">
+                <cstring>unnamed</cstring>
+            </property>
+            <property name="margin">
+                <number>0</number>
+            </property>
+            <property name="spacing">
+                <number>6</number>
+            </property>
+            <widget class="QLayoutWidget">
+                <property name="name">
+                    <cstring>Layout1</cstring>
+                </property>
+                <vbox>
+                    <property name="name">
+                        <cstring>unnamed</cstring>
+                    </property>
+                    <property name="margin">
+                        <number>0</number>
+                    </property>
+                    <property name="spacing">
+                        <number>6</number>
+                    </property>
+                    <widget class="QLabel">
+                        <property name="name">
+                            <cstring>TextLabel1</cstring>
+                        </property>
+                        <property name="text">
+                            <string>Enter network port for new listener:</string>
+                        </property>
+                    </widget>
+                    <widget class="QSpinBox">
+                        <property name="name">
+                            <cstring>newport</cstring>
+                        </property>
+                        <property name="maxValue">
+                            <number>65535</number>
+                        </property>
+                        <property name="value">
+                            <number>4444</number>
+                        </property>
+                    </widget>
+                </vbox>
+            </widget>
+            <widget class="QLayoutWidget">
+                <property name="name">
+                    <cstring>Layout2</cstring>
+                </property>
+                <hbox>
+                    <property name="name">
+                        <cstring>unnamed</cstring>
+                    </property>
+                    <property name="margin">
+                        <number>0</number>
+                    </property>
+                    <property name="spacing">
+                        <number>6</number>
+                    </property>
+                    <widget class="QPushButton">
+                        <property name="name">
+                            <cstring>Ok</cstring>
+                        </property>
+                        <property name="text">
+                            <string>Start Network Listener</string>
+                        </property>
+                    </widget>
+                    <widget class="QPushButton">
+                        <property name="name">
+                            <cstring>cancel</cstring>
+                        </property>
+                        <property name="text">
+                            <string>Cancel</string>
+                        </property>
+                    </widget>
+                </hbox>
+            </widget>
+        </vbox>
+    </widget>
+</widget>
+<connections>
+    <connection>
+        <sender>cancel</sender>
+        <signal>pressed()</signal>
+        <receiver>NewNetworkPortDlg</receiver>
+        <slot>reject()</slot>
+    </connection>
+    <connection>
+        <sender>Ok</sender>
+        <signal>clicked()</signal>
+        <receiver>NewNetworkPortDlg</receiver>
+        <slot>openPort()</slot>
+    </connection>
+</connections>
+<includes>
+    <include location="local" impldecl="in implementation">newnetworkportdlg.ui.h</include>
+</includes>
+<slots>
+    <slot access="protected">openPort()</slot>
+</slots>
+<layoutdefaults spacing="6" margin="11"/>
+</UI>

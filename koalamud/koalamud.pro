@@ -1,10 +1,11 @@
 TARGET = koalamud
 DESTDIR = ../bin
-DEFINES += _GNU_SOURCE
+DEFINES += _GNU_SOURCE _POSIX REENTRANT
 UI_DIR = .uic
 MOC_DIR = .moc
 OBJECTS_DIR = .obj
 TEMPLATE = app 
+LIBS += -lZThread
 CONFIG += debug \
           warn_on \
           qt \
@@ -20,5 +21,6 @@ HEADERS += main.hxx \
            network.hxx \
            char.hxx \
            playerchar.hxx \
-					 cmd.hxx
+					 cmd.hxx \
+					 event.hxx
 FORMS += newnetworkportdlg.ui 

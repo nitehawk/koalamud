@@ -202,10 +202,9 @@ QString Char::languageMorph(QString langid, QString msg, bool spoken = false)
 {
 	/* Temporary:  For now assume we have a skill level of 50% in the given
 	 * language - for testing */
-	
 	Language *lang = Language::getLanguage(langid);
 	if (lang)
-		return lang->morphString(msg, 50);
+		return lang->morphString(msg, 100-lang->getDifficulty());
 	else
 		return msg;
 }

@@ -239,6 +239,16 @@ class Room
 				os << "(" << zone << "," << lat << "," << longi << "," << elev << ")";
 				return ref; }
 
+	public:  /* Property gets */
+		/** Return room zone */
+		int getZone(void) const { return _zone; }
+		/** Return room lat */
+		int getLat(void) const { return _lat; }
+		/** Return room long */
+		int getLong(void) const { return _long; }
+		/** Return room elev */
+		int getElev(void) const { return _elev; }
+
 	protected:
 		QString _title; /**< Room Title */
 		QString _description;  /**<  Room description */

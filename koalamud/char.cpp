@@ -21,6 +21,22 @@
 
 namespace koalamud
 {
+/** Name supplied in constructor */
+Char::Char(QString name = NULL, ParseDescriptor *desc=NULL)
+	: _name(name), _desc(NULL), _disconnecting(false),
+		cmdtaskrunning(false), _inroom(NULL)
+{
+	if (desc)
+		setDesc(desc);
+}
+
+/** Make sure that we leave the room we are in */
+Char::~Char(void)
+{
+	if (_inroom)
+		_inroom->leaveRoom(this);
+}
+
 
 /** Get the characters name.
  * If @a pair is specified, this will check if the character is visible to the
@@ -49,6 +65,17 @@ QString Char::getName(Char *pair=NULL)
 bool Char::visibleTo(Char *pair)
 {
 	return true;
+}
+
+/** Get the short description for a player
+ * This is used primarily in displaying rooms
+ */
+QString Char::getShortDesc(Char *pair=NULL)
+{
+	QString out;
+	QTextOStream os(&out);
+	os << _name << " is resting here.";
+	return out;
 }
 
 /** Attach a descriptor to character */

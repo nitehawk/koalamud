@@ -31,6 +31,7 @@ namespace koalamud {
 #include "network.hxx"
 #include "cmd.hxx"
 #include "comm.hxx"
+#include "room.hxx"
 
 namespace koalamud {
 /** Character abstract base class
@@ -55,19 +56,16 @@ class Char : public QObject
 		} cmdqueueitem;
 
 	public: // Constructors/destructors
-		/** Name supplied in constructor */
-		Char(QString name = NULL, ParseDescriptor *desc=NULL)
-			: _name(name), _desc(NULL), _disconnecting(false),
-				cmdtaskrunning(false)
-			{ if (desc) setDesc(desc); }
+		Char(QString name = NULL, ParseDescriptor *desc=NULL);
 		/** Empty virtual destructor to ensure cleanup happens correctly */
-		virtual ~Char(void) {}
+		virtual ~Char(void);
 
 	public:
 		/** Update name */
 		virtual void setName(QString name)
 			{ _name = name; }
 		virtual QString getName(Char *pair=NULL);
+		virtual QString getShortDesc(Char *pair=NULL);
 		virtual void setDesc(ParseDescriptor *desc);
 		/** Return pointer to connected descriptor */
 		virtual ParseDescriptor *getDesc(void) { return _desc; }
@@ -78,6 +76,12 @@ class Char : public QObject
 		virtual void queueCommand(Command *cmd, QString args);
 		/** Return true if this descriptor is disconnecting */
 		virtual bool isDisconnecting(void) {return _disconnecting; }
+		/** Return a pointer to the room we are in */
+		Room *getRoom(void) const { return _inroom; }
+		/** Update the room we are in
+		 * Assume that calling function handles the player lists for the room pair
+		 */
+		void setRoom(Room *newroom) { _inroom = newroom; }
 
 	public: /* Pure virtuals */
 		/** Load character from database
@@ -117,6 +121,8 @@ class Char : public QObject
 		ParseDescriptor *_desc;
 		/** Disconnecting flag */
 		bool _disconnecting;
+		/** Pointer to room we are in */
+		Room *_inroom;
 
 		/** Our command queue */
 		QPtrQueue<cmdqueueitem> cmdqueue;

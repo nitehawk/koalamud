@@ -9,22 +9,32 @@ LIBS += -lZThread
 CONFIG += debug \
           warn_on \
           qt \
+					core \
           thread 
-SOURCES += main.cpp \
-           koalastatus.cpp \
-           network.cpp \
-           char.cpp \
-           playerchar.cpp \
-					 cmd.cpp \
-					 database.cpp \
-					 comm.cpp
-HEADERS += main.hxx \
-           koalastatus.h \
-           network.hxx \
-           char.hxx \
-           playerchar.hxx \
-					 cmd.hxx \
-					 comm.hxx \
-					 database.hxx \
-					 event.hxx
-FORMS += newnetworkportdlg.ui 
+
+core {
+	CONFIG += world cmd gui char
+	SOURCES += main.cpp network.cpp database.cpp memory.cpp
+	HEADERS += main.hxx network.hxx database.hxx event.hxx memory.hxx
+}
+
+world {
+	SOURCES += room.cpp
+	HEADERS += room.hxx
+}
+
+char {
+	SOURCES += char.cpp playerchar.cpp
+	HEADERS += char.hxx playerchar.hxx
+}
+
+cmd {
+	SOURCES += cmd.cpp comm.cpp
+	HEADERS += cmd.hxx comm.hxx
+}
+
+gui {
+	FORMS += newnetworkportdlg.ui
+	SOURCES += koalastatus.cpp
+	HEADERS += koalastatus.h
+}

@@ -678,22 +678,26 @@ class Room_CPP_CommandFactory : public CommandFactory
 		Room_CPP_CommandFactory(void)
 			: CommandFactory()
 		{
-			maincmdtree->addcmd("move", this, 1);
-			maincmdtree->addcmd("go", this, 1);
 			maincmdtree->addcmd("north", this, 2);
+			maincmdtree->addcmd("n", this, 2);
 			maincmdtree->addcmd("northeast", this, 3);
-			maincmdtree->addcmd("neast", this, 3);
+			maincmdtree->addcmd("ne", this, 3);
 			maincmdtree->addcmd("east", this, 4);
+			maincmdtree->addcmd("e", this, 4);
 			maincmdtree->addcmd("south", this, 6);
+			maincmdtree->addcmd("s", this, 6);
 			maincmdtree->addcmd("southeast", this, 5);
-			maincmdtree->addcmd("seast", this, 5);
+			maincmdtree->addcmd("se", this, 5);
 			maincmdtree->addcmd("southwest", this, 7);
-			maincmdtree->addcmd("swest", this, 7);
+			maincmdtree->addcmd("sw", this, 7);
 			maincmdtree->addcmd("west", this, 8);
+			maincmdtree->addcmd("w", this, 8);
 			maincmdtree->addcmd("northwest", this, 9);
-			maincmdtree->addcmd("nwest", this, 9);
+			maincmdtree->addcmd("nw", this, 9);
 			maincmdtree->addcmd("up", this, 10);
+			maincmdtree->addcmd("u", this, 10);
 			maincmdtree->addcmd("down", this, 11);
+			maincmdtree->addcmd("d", this, 11);
 		}
 
 		/** Handle command object creations */

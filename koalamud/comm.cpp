@@ -94,6 +94,18 @@ class Gossip : public Command
 		/** Run gossip command */
 		virtual unsigned int run(QString args)
 		{
+			/* Later this should scan for color codes as well */
+			if (args.length() == 0)
+			{
+				QString out;
+				QTextOStream os(&out);
+				os << endl
+					 << "Yes, gossip if you must, but what gossip do you want to share?"
+					 << endl;
+				_ch->sendtochar(out);
+				return 1;
+			}
+
 			Channel *goschan = channelmap["gossip"];
 			if (goschan == NULL)
 			{

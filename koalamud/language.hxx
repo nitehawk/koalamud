@@ -19,6 +19,7 @@
 
 #include "memory.hxx"
 #include "olc.hxx"
+#include "skill.hxx"
 
 namespace koalamud
 {
@@ -50,7 +51,7 @@ extern QDict<Language> languageMap;
  * not handle the actual marker extraction, however.  Marker extraction is
  * done in the Char class, specifically sendtochar.
  */
-class Language
+class Language : public Skill
 {
 	public:
 		/** Mapping in charmap */
@@ -60,7 +61,7 @@ class Language
 		/** Construct a language object */
 		Language(QString langid, QString name, QString parentlang,
 							QString charset, unsigned int difficulty, QString sname)
-			: _id(langid), _name(name), _parent(parentlang), _shortname(sname),
+			: Skill(langid, name), _parent(parentlang), _shortname(sname),
 				_charset(charset), _difficulty(difficulty)
 			{ genCharMap(); languageMap.insert(langid, this);
 				langidmap[langid] = name;  langnamemap[name] = langid;
@@ -104,10 +105,6 @@ class Language
 			{ koalamud::PoolAllocator::free(ptr); }
 
 	public:  /* Property gets */
-		/** Get language ID */
-		QString getID(void) const { return _id; }
-		/** Get language name */
-		QString getName(void) const { return _name; }
 		/** Get language difficulty */
 		unsigned int getDifficulty(void) const { return _difficulty; }
 		/** Get language parent */
@@ -116,8 +113,6 @@ class Language
 		QString getShort(void) const { return _shortname; }
 
 	protected:
-		QString _id;  /**< langid - used in markers */
-		QString _name;	/**< Language name */
 		QString _parent; /**< Parent language ID */
 		QString _shortname; /**< Short Language Name */
 		/** Characters to use for this language (all lowercase)

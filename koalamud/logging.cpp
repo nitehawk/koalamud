@@ -17,9 +17,9 @@
 #include <qsqlquery.h>
 #include <qsqlerror.h>
 #include <qdatetime.h>
+#include <qregexp.h>
 
 #include "logging.hxx"
-#include "main.hxx"
 #include "cmd.hxx"
 #include "cmdtree.hxx"
 
@@ -55,9 +55,11 @@ void Logger::imsg(QString lm, log_lev sev = LOG_INFO)
 	{
 		/* Construct a query to insert the log record */
 		QString query;
-		QTextOStream os(&query);
-		os << "insert into logging (severity, msgtime, message) values" << endl;
-		os << "('" << sevstring << "', NOW(), \"" << lm << "\");";
+		QTextOStream qos(&query);
+		qos << "insert into logging (severity, profile,msgtime, message) values" 
+				<< endl
+				<< "('" << sevstring << "', '" << profile << "', NOW(),"
+				<< "'" << escapeString(lm) << "');";
 		q.exec(query);
 	}
 
@@ -97,6 +99,18 @@ void Logger::imsg(QString lm, log_lev sev = LOG_INFO)
 			case LOG_DEBUG: emit logdebugsent(gm); break;
 		}
 	}
+}
+
+/** Escape special characters in strings
+ * This is primarily to escape special strings before inserting a string into
+ * the database.
+ */
+QString Logger::escapeString(QString str)
+{
+	QString out;
+	out = str.replace(QRegExp("\\"), "\\\\");
+	out = out.replace(QRegExp("'"), "\\'");
+	return out;
 }
 
 	/** All commands go in this name space */

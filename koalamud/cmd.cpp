@@ -41,6 +41,8 @@ KOALACMD(cmd_who)
 	while ((cur = pli.current()) != NULL)
 	{
 		++pli;
-		os << cur->getName() << endl;
+		/* Later we'll want to display more information as well as check
+		 * imm invisibility and a lot of other stuff before displaying someone */
+		os << cur->getName(ch) << endl;
 	}
 }

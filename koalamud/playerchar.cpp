@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 
+#include "main.hxx"
 #include "event.hxx"
 #include "playerchar.hxx"
 #include "cmdtree.hxx"
@@ -32,11 +33,11 @@ K_PlayerChar::K_PlayerChar(int socket, QObject *parent = NULL,
 			_state(STATE_GETNAME),
 			_disconnecting(false), _indatabase(false), cmdtaskrunning(false)
 {
-    if ( guiactive )
+    if (srv->usegui())
     {
-			plrstatuslistitem = new QListViewItem(stat->PlayerStatusList,
+			plrstatuslistitem = new QListViewItem(srv->statwin()->PlayerStatusList,
 				"Unnamed", "0", "Get Name");
-			stat->updateplayercount();
+			srv->statwin()->updateplayercount();
     }
 
 	/* Add ourself to the connected player list */
@@ -63,9 +64,9 @@ K_PlayerChar::~K_PlayerChar()
 
 		/* Cleanup our status window information */
     delete plrstatuslistitem;
-    if (guiactive)
+    if (srv->usegui())
     {
-			stat->updateplayercount();
+			srv->statwin()->updateplayercount();
     }
 }
 /* }}} Destructor */
@@ -73,7 +74,7 @@ K_PlayerChar::~K_PlayerChar()
 /* {{{ Update gui status */
 void K_PlayerChar::updateguistatus(void)
 {
-	if (guiactive)
+	if (srv->usegui())
 	{
 		plrstatuslistitem->setText(0, _name);
 		switch (_state)
@@ -135,7 +136,7 @@ void K_PlayerChar::readclient(void)
 			if (cmdtaskrunning == false)
 			{
 				cmdtaskrunning = true;
-				executor->execute(new K_PCInputTask(this));
+				srv->executor()->execute(new K_PCInputTask(this));
 			}
 			linequeuelock.release();
 		}
@@ -187,7 +188,7 @@ void K_PlayerChar::sendWelcome(void)
 {
 	/* FIXME: This should be spruced up later */
 	QTextStream os(this);
-	os << "Welcome to KoalaMud Gen 2 v0.3.0a" << endl;
+	os << "Welcome to " << srv->versionstring() << endl;
 	os << "By what name are you known? ";
 }
 /* }}} sendWelcome */
@@ -576,7 +577,7 @@ void K_PCInputTask::run(void) throw()
 		ch->cmdtaskrunning = false;
 	} else {
 		/* Schedule another task */
-		executor->execute(new K_PCInputTask(ch));
+		srv->executor()->execute(new K_PCInputTask(ch));
 	}
 	ch->linequeuelock.release();
 }

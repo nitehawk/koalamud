@@ -15,20 +15,79 @@
 #define KOALA_MAIN_HXX "%A%"
 
 #include <zthread/PoolExecutor.h>
+#include <qapplication.h>
 #include "koalastatus.h"
 #include "memory.hxx"
+#include "database.hxx"
 
-#define TPMIN	1
-#define TPMAX 2
+namespace koalamud {
+
+/** Main server class
+ * This class handles all of the setup and execution of the game engine.  It
+ * is responsible for initializing all of the subsystems and providing a
+ * proxy layer for some of the other subsystems to communicate with each
+ * other.
+ */
+class MainServer 
+{
+	protected: /* constants */
+		/** Minimum number of threads to create for ZThread threadpool. */
+		static const unsigned int threadpoolmin = 1;
+		/** Maximum number of threads to create for ZThread threadpool. */
+		static const unsigned int threadpoolmax = 2;
+
+	protected: /* internal data */
+		/** Pointer to database management */
+		koalamud::Database *_kmdb;
+		/** Pointer to the Qt Application object */
+		QApplication *_app;
+		/** Pointer to our task executor */
+		ZThread::Executor *_executor;
+		/** Gui status */
+		bool _guiactive;
+		/** Pointer to our status window */
+		KoalaStatus *_statwin;
+		/** Should we run in the background */
+		bool _background;
+		/** Execution Profile */
+		QString _profile;
+
+	public: /* Base system execution functions */
+		MainServer(int argc, char **argv);
+		~MainServer(void);
+
+		void run(void);
+
+	public: /* property extraction functions */
+		/** Return a pointer to our pool executor */
+		ZThread::Executor *executor(void) { return _executor; }
+		/** Return a pointer to our QAppliction object */
+		QApplication *app(void) { return _app; }
+		/** Return a pointer to our database object */
+		koalamud::Database *db(void) { return _kmdb; }
+		/** Return true if we are using the GUI */
+		bool usegui(void) { return _guiactive; }
+		/** Return pointer to status window */
+		KoalaStatus *statwin(void) { return _statwin; }
+		
+	protected: /* Internal utility functions */
+		bool parseargs(int argc, char **argv);
+		void daemonize(void);
+
+	public: /* public utility functions */
+		QString versionstring(void);
+		QString usage(void);
+
+		/** Shutdown the game server */
+		void shutdown(int ret) { app()->exit(ret); }
+};
+	
+}; /* end koalamud namespace */
 
 #ifdef KOALA_MAIN_CXX
-bool guiactive;
-KoalaStatus *stat;
-ZThread::Executor *executor;
+koalamud::MainServer *srv;
 #else
-extern bool guiactive;
-extern KoalaStatus *stat;
-extern ZThread::Executor *executor;
+extern koalamud::MainServer *srv;
 #endif // KOALA_MAIN_CXX
 
 

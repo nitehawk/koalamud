@@ -24,8 +24,7 @@ namespace koalamud
 {
 /** Name supplied in constructor */
 Char::Char(QString name = NULL, ParseDescriptor *desc=NULL)
-	: _name(name), _desc(NULL), _disconnecting(false),
-		cmdtaskrunning(false), _inroom(NULL)
+	: _name(name), _desc(NULL), _disconnecting(false), _inroom(NULL)
 {
 	if (desc)
 		setDesc(desc);
@@ -136,26 +135,6 @@ void Char::channelsendtochar(Char *from, QString templateall,
 	}
 }
 
-/** Add a command to the command queue
- * Also make sure a task is in existance to eventually run it.
- */
-void Char::queueCommand(Command *cmd, QString args)
-{
-	cmdqueueitem *newitem = new cmdqueueitem;
-	newitem->cmd = cmd;
-	newitem->args = args;
-
-	cmdqueuelock.acquire();
-	cmdqueue.enqueue(newitem);
-	if (!cmdtaskrunning)
-	{
-		cmdtaskrunning = true;
-		/* Queue task */
-		srv->executor()->execute(new cmdexectask(this));
-	}
-	cmdqueuelock.release();
-}
-
 bool Char::sendtochar(QString data)
 {
 	{
@@ -257,52 +236,5 @@ bool Char::setSkillLevel(QString id, int level)
 	}
 	return true;
 }
-
-/* {{{ cmdexectask implementation */
-/** Initialize a command execution task */
-void Char::cmdexectask::run(void)
-{
-	/* Don't do anything if we are are a player and disconnecting */
-	if (_ch->isDisconnecting() && _ch->isPC())
-		return;
-
-	/* Get the first pending command */
-	_ch->cmdqueuelock.acquire();
-	cmdqueueitem *cmditem = _ch->cmdqueue.dequeue();
-	_ch->cmdqueuelock.release();
-
-	/* run command */
-	try {
-		cmditem->cmd->runCmd(cmditem->args);
-	}
-	catch (koalamud::exceptions::cmdpermdenied p)
-	{
-		QString out;
-		QTextOStream os(&out);
-		os << "You do not have permission to run this command." << endl;
-		_ch->sendtochar(out);
-	}
-	_ch->sendPrompt();
-
-	/* cleanup */
-	delete cmditem->cmd;
-	delete cmditem;
-	
-	/* Don't schedule any more command executors if we are disconnecting */
-	if (_ch->isDisconnecting())
-		return;
-
-	/* If there are more commands pending, start another executor */
-	_ch->cmdqueuelock.acquire();
-	if (_ch->cmdqueue.isEmpty())
-	{
-		_ch->cmdtaskrunning = false;
-	} else {
-		srv->executor()->execute(new cmdexectask(_ch));
-	}
-	_ch->cmdqueuelock.release();
-}
-
-/* }}} end cmdexectask implementation */
 
 }; /* End koalamud namespace */

@@ -76,7 +76,6 @@ class Char : public QObject
 		/** Is this a player char
 		 * Return true if this is a player character, false otherwise */
 		virtual bool isPC(void) { return false;}
-		virtual void queueCommand(Command *cmd, QString args);
 		/** Return true if this descriptor is disconnecting */
 		virtual bool isDisconnecting(void) {return _disconnecting; }
 		/** Return a pointer to the room we are in */
@@ -88,6 +87,9 @@ class Char : public QObject
 		QString languageMorph(QString langid, QString msg, bool spoken = false);
 		/** Should we show a compass in room descriptions */
 		bool showCompass(void) const { return true; }
+		/** Return true if the character is an immortal
+		 * This determines if the immcommandtree is searched for commands */
+		virtual bool isImmortal(void) const {return true;}
 		
 
 	public: /* Pure virtuals */
@@ -140,30 +142,6 @@ class Char : public QObject
 		Language *priLanguage;
 		/** Our skill records */
 		QDict<SkillRecord> skills;
-
-		/** Our command queue */
-		QPtrQueue<cmdqueueitem> cmdqueue;
-		/** Lock for command queue */
-		ZThread::FastRecursiveMutex cmdqueuelock;
-		/** Is our command task running */
-		bool cmdtaskrunning;
-
-	protected: /* Internal usage classes */
-		/** Command executor task */
-		class cmdexectask : public ZThread::Runnable
-		{
-			public:
-				/** Create a command executor task */
-				cmdexectask(Char *ch) : _ch(ch) {}
-				/** Destroy a command executor task */
-				virtual ~cmdexectask(void) {}
-				virtual void run(void);
-			protected:
-				/** Pointer to the char we are executing commands on */
-				Char *_ch;
-		};
-		/** Make sure that command executor can get to everything it needs */
-		friend class cmdexectask;
 };
 
 }; /* end koalamud namespace */

@@ -475,9 +475,14 @@ class Move : public Command
 				QString out;
 				QTextOStream os(&out);
 				os << endl
-					 << "You hit your head on the door trying to walk through it."
+					 << "%sender% hit your head on the door trying to walk through it."
 					 << endl;
-				_ch->sendtochar(out);
+				QString roomtmpl;
+				QTextOStream os2(&roomtmpl);
+				os2 << endl
+						<< "%sender% hits his head while trying to walk through a door."
+						<< endl;
+				_ch->getRoom()->sendToRoom(_ch, NULL, NULL, out, NULL, roomtmpl);
 				return false;
 			}
 

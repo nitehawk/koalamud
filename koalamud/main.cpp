@@ -19,6 +19,7 @@
 #include "main.hxx"
 #include "network.hxx"
 #include "koalastatus.h"
+#include "cmd.hxx"
 
 int main( int argc, char **argv )
 {
@@ -34,6 +35,12 @@ int main( int argc, char **argv )
      stat->show();
      a.setMainWidget(stat);
    }
+
+	/* Load commands */
+	initcmddict();
+
+	/* Start a listener */
+	 new KoalaServer(4444);
 
    return a.exec();
 }

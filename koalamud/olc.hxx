@@ -106,6 +106,8 @@ class olc : public Parser
 											bool editable, long max = 0, long min=0);
 		field_t *addField(QString name, fieldtype_t type, long *numval,
 											bool editable, long max = 0, long min=0);
+		void addFlag(field_t *field, unsigned int flag, QString name);
+		QString buildFlagMenu(field_t *field);
 
 	protected:
 		/** Pointer to old parser */

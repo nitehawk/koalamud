@@ -45,7 +45,10 @@ void olc::parseLine(QString line)
 	QString cline = line.simplifyWhiteSpace();
 	int field;
 	bool dosendmenu = false;
+	bool dosendout = true;
 	Editor *edit;
+	bool valueok;
+	unsigned int value = cline.toUInt(&valueok);
 
 	switch (curstate)
 	{
@@ -106,13 +109,13 @@ void olc::parseLine(QString line)
 							return;
 						case FIELD_ENUM:
 							/* Need to set the field list menu */
+							_desc->send(buildFlagMenu(curfield));
 							curstate = STATE_EDITENUM;
-							curstate = STATE_MAINMENU;
 							break;
 						case FIELD_SET:
+							_desc->send(buildFlagMenu(curfield));
 							/* Need to send the field list menu */
 							curstate = STATE_EDITSET;
-							curstate = STATE_MAINMENU;
 							break;
 					}
 				}
@@ -157,18 +160,65 @@ void olc::parseLine(QString line)
 			dosendmenu = true;
 			break;
 		case STATE_EDITENUM:
-			/* We will stay in this state for more than one line of input, so we
-			 * won't always send the main menu from here.
-			 * FIXME:  Implement this.
-			 */
-			dosendmenu = true;
+			/* Check our input for an unsigned int.  If we have one, match it to a
+			 * flag or redisplay the enum menu. */
+			if (valueok)
+			{
+				for (listnode_t *curnode = curfield->flaglist.first(); curnode;
+							curnode = curfield->flaglist.next())
+				{
+					if (curnode->flagnum == value)
+					{
+						*(curfield->numeric) = value;
+						os << endl << curfield->name << " has been set to "
+							 << curnode->name << endl;
+						curstate = STATE_MAINMENU;
+						dosendmenu = true;
+						break;
+					}
+				}
+			}
+			os << "'" << line << "' is not a valid selection." << endl;
+			_desc->send(out);
+			dosendout = false;
+			_desc->send(buildFlagMenu(curfield));
 			break;
 		case STATE_EDITSET:
-			/* We will stay in this state for more than one line of input, so we
-			 * won't always send the main menu from here.
-			 * FIXME:  Implement this.
-			 */
-			dosendmenu = true;
+			/* We stay in editset mode until we get a 'quit' */
+			if (QString("quit").startsWith(cline.lower()))
+			{
+				curstate = STATE_MAINMENU;
+				dosendmenu = true;
+				os << endl << curfield->name << " has been updated." << endl;
+				break;
+			}
+			if (valueok)
+			{
+				listnode_t *curnode = NULL;
+				for (curnode = curfield->flaglist.first(); curnode;
+							curnode = curfield->flaglist.next())
+				{
+					if (curnode->flagnum == value)
+					{
+						*(curfield->numeric) ^= 1 << value;
+						dosendout = false;
+						_desc->send(buildFlagMenu(curfield));
+						break;
+					}
+				}
+				if (!curnode)
+				{
+					os << "'" << line << "' is not a valid selection." << endl;
+					_desc->send(out);
+					dosendout = false;
+					_desc->send(buildFlagMenu(curfield));
+				}
+			} else {
+				os << "'" << line << "' is not a valid selection." << endl;
+				_desc->send(out);
+				dosendout = false;
+				_desc->send(buildFlagMenu(curfield));
+			}
 			break;
 		case STATE_EDITML:
 			curstate = STATE_MAINMENU;
@@ -181,7 +231,8 @@ void olc::parseLine(QString line)
 			dosendmenu = true;
 			break;
 	}
-	_desc->send(out);
+	if (dosendout)
+		_desc->send(out);
 	if (dosendmenu)
 		sendMenu();
 }
@@ -242,20 +293,23 @@ void olc::sendMenu(void)
 			case FIELD_SET:
 				/* Loop through the attached list and output each record that is set
 				 */
-				for (listnode_t *curnode = cur->flaglist.first(); curnode;
-							curnode = cur->flaglist.next())
 				{
 					unsigned int count = 0;
-					if ((*(cur->numeric)) & curnode->flagnum)
+					for (listnode_t *curnode = cur->flaglist.first(); curnode;
+								curnode = cur->flaglist.next())
 					{
-						if (count)
+						if ((*(cur->numeric)) & (1 << curnode->flagnum))
 						{
-							os << ", ";
+							if (count)
+							{
+								os << ", ";
+							}
+							os << curnode->name;
+							count++;
 						}
-						os << curnode->name;
-						count++;
 					}
 				}
+				os << endl;
 				break;
 		}
 
@@ -317,6 +371,55 @@ olc::field_t *olc::addField(QString name, fieldtype_t type,
 	return newfield;
 }
 
+/** Add a flag to an Enum or Set field type */
+void olc::addFlag(olc::field_t *field, unsigned int flag, QString name)
+{
+	if (field->type == FIELD_ENUM || field->type == FIELD_SET)
+	{
+		listnode_t *newflag = new listnode_t;
+		newflag->flagnum = flag;
+		newflag->name = name;
+		field->flaglist.append(newflag);
+		field->flaglist.setAutoDelete(true);
+	}
+}
+
+/** Build a QString with a menu built for an enum or set field
+ * For set fields, we will mark each item that is selected. */
+QString olc::buildFlagMenu(olc::field_t *field)
+{
+	/* Make sure we are dealing with the right field type */
+	if (field->type != FIELD_ENUM && field->type != FIELD_SET)
+		return "";
+
+	bool markset = (field->type == FIELD_SET);
+
+	QString out;
+	QTextOStream fos(&out);
+
+	fos << (markset ? "Set: " : "Enum: ") << field->name << endl << endl;
+	
+	listnode_t *cur;
+	for (cur = field->flaglist.first(); cur; cur = field->flaglist.next())
+	{
+		fos.width(3);
+		fos << cur->flagnum;
+		fos.width(0);
+		if (markset && (*(field->numeric) & (1 << cur->flagnum)) )
+		{
+			fos << " * ";
+		} else {
+			fos << "   ";
+		}
+
+		fos << cur->name << endl;
+	}
+
+	fos << endl;
+
+	return out;
+}
+
 namespace commands {
 /** CommandList command class */
 class Olc : public Command
@@ -354,7 +457,7 @@ class Olc : public Command
 			}
 
 			/* Run the subcommand */
-			return subcmd->run(args.section(' ', 1));
+			return subcmd->runCmd(args.section(' ', 1));
 
 			return 0;
 		}

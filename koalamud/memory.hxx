@@ -75,18 +75,6 @@ namespace koalamud {
  * construction.  We use the beginning of this block to put all of our
  * tracking overhead in.
  *
- * @bug Currently the PoolAllocator cannot be used in or by classes that are
- * initialized before main is called.  For what should be obvious reasons,
- * this isn't going to work, so we need to come up with a way around it.
- * Current best idea is similar to a singleton idea with a static boolean
- * initialized to false.  Then alloc would check this value and call an
- * initialize function if it was false before proceeding to fill the alloc
- * request as normal.  The concern is then the overhead of that check on every
- * alloc request, though we should still be coming in lower then default alloc
- * times.  --  The initialize function approach does not work as the syslock
- * is created in the constructor process and thus has not been properly
- * created if initialize() was called before the constructor.  A different
- * approach is needed.
  */
 class PoolAllocator
 {

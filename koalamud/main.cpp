@@ -157,6 +157,7 @@ void MainServer::parseargs(int argc, char **argv) throw (koalaexception)
 				break;
 		}
 	}
+	Logger::setProfile(_profile);
 }
 
 /** Return current version string */

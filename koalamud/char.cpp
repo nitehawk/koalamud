@@ -206,13 +206,56 @@ bool Char::sendtochar(QString data)
  */
 QString Char::languageMorph(QString langid, QString msg, bool spoken = false)
 {
-	/* Temporary:  For now assume we have a skill level of 50% in the given
-	 * language - for testing */
-	Language *lang = Language::getLanguage(langid);
+	Language *lang;
+	int know;
+	if (spoken)
+	{
+		lang = priLanguage;
+		if (lang == NULL)
+		{
+			/* For now make elven the default if no language is set */
+			lang = priLanguage = Language::getLanguage("elven");
+		}
+		know = getKnow(langid);
+	} else {
+		lang = Language::getLanguage(langid);
+		know = getKnow(langid);
+	}
 	if (lang)
-		return lang->morphString(msg, 100-lang->getDifficulty());
+		return lang->morphString(msg, know);
 	else
 		return msg;
+}
+
+/** Get the complete know level for a skill */
+int Char::getKnow(QString id)
+{
+	SkillRecord *skrec = skills[id];
+	if (skrec == NULL)
+		return 0;
+
+	return skrec->getLev();
+}
+
+/** Set the skill level for specified skill.  If they don't already know this
+ * skill, add it to their skill list. */
+bool Char::setSkillLevel(QString id, int level)
+{
+	SkillRecord *skrec = skills[id];
+	if (skrec == NULL)
+	{
+		Skill *newskill;
+		newskill = Skill::getSkill(id);
+		if (newskill == NULL)
+		{
+			return false;
+		}
+		skrec = new SkillRecord(id, level, 0, newskill);
+		skills.insert(id, skrec);
+	} else {
+		skrec->setKnow(level);
+	}
+	return true;
 }
 
 /* {{{ cmdexectask implementation */

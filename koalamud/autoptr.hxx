@@ -29,7 +29,7 @@
 
 using ZThread::Guard;
 
-namespace KoalaMud {
+namespace koalamud {
   
 /**
  * @class KRefObj
@@ -219,7 +219,7 @@ class KRefPtr
 
 };  /* KoalaMud Namespace */
 
-using KoalaMud::KRefPtr;
-using KoalaMud::KRefObj;
+using koalamud::KRefPtr;
+using koalamud::KRefObj;
 
 #endif //  KOALA_AUTOPTR_HXX

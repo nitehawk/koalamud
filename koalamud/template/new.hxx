@@ -11,3 +11,8 @@
 * Description:
 * Classes:
 \***************************************************************/
+
+#ifndef KOALA_FILENAME_HXX
+#define KOALA_FILENAME_HXX "%A%"
+
+#endif //  KOALA_FILENAME_HXX

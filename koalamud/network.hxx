@@ -18,10 +18,12 @@
 #ifndef KOALA_NETWORK_HXX
 #define KOALA_NETWORK_HXX "%A%"
 
-#include <qserversocket.h>
-#include <qsocket.h>
 #include <qlistview.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <zthread/FastRecursiveMutex.h>
+
+#include "buffer.hxx"
 
 /* Predefine classes */
 namespace koalamud {
@@ -33,11 +35,46 @@ class ParseDescriptor;
 /*  All of the network code needs to be rebuilt in the koalamud namespace.. */
 namespace koalamud {
 
+/** Socket class
+ * This provides the most basic interface information for network sockets
+ */
+class Socket : public QObject
+{
+	Q_OBJECT
+
+	public:
+		Socket(int sock = 0);
+		virtual ~Socket(void);
+
+		/** This is called by the main socket loop for reads. */
+		virtual void dispatchRead(void) = 0;
+		/** This is called by the main socket loop for writes. */
+		virtual void doWrite(void) = 0;
+
+		/** Return true if there is data waiting in the output buffer
+		 * This will affect whether a socket is added to the write socket list */
+		virtual bool isDataPending(void) { return false; }
+		/** Get the underlying socket descriptor */
+		int getSock(void) const { return _sock; }
+		/** Mark a socket for closing.
+		 * Actual close and delete will be handled by a dispatchWrite function to
+		 * allow all of the out buffer to clear first.
+		 */
+		void markClose(void) { _closeme = true; }
+
+		/** Set all the appropriate socket options on newly accepted sockets */
+	protected:
+		/** Socket descriptor */
+		int _sock;
+		/** Should we close when the output buffer empties */
+		bool _closeme;
+};
+
 /** Network listener class
  * This class listens to a specified port for incoming connections and creates
  * appropriate descriptor objects to match listener type.
  */
-class Listener : public QServerSocket
+class Listener : public Socket
 {
 	public:
 		/** Listener types */
@@ -46,20 +83,23 @@ class Listener : public QServerSocket
 		} porttype_t;
 
 	public:
-   Listener(unsigned int port, porttype_t = GAMESERVER);
-   virtual ~Listener();
+		Listener(unsigned int port, porttype_t = GAMESERVER);
+		virtual ~Listener();
 
-  /** Handle a newly accepted connection and bring it into the game world */
-  virtual void newConnection(int socket);
+		/** Handle a newly accepted connection and bring it into the game world */
+		virtual void newConnection(int socket);
+		/** This is called by the main socket loop for reads. */
+		virtual void dispatchRead(void);
+		/** This is called by the main socket loop for writes. */
+		virtual void doWrite(void) {}
 
-protected:
-	/** Pointer to our status item in the gui */
-	QListViewItem *ListenStatusItem;
-	/** Type of Listener */
-	porttype_t _type;
-	/** Port we are listening on */
-	unsigned int _port;
-		
+	protected:
+		/** Pointer to our status item in the gui */
+		QListViewItem *ListenStatusItem;
+		/** Type of Listener */
+		porttype_t _type;
+		/** Port we are listening on */
+		unsigned int _port;
 };
 
 /** Descriptors base class
@@ -70,7 +110,7 @@ protected:
  * purpose.
  * @note  The base descriptor class only provides send functionality.
  */
-class Descriptor : public QSocket
+class Descriptor : public Socket
 {
 	Q_OBJECT
 
@@ -88,8 +128,9 @@ class Descriptor : public QSocket
 
 	public:
 		virtual void send(QString sendthis);
-		virtual bool event(QEvent *event);
-		void notifyOutput(Char *ch);
+		virtual void dispatchRead(void);
+		virtual void doWrite(void);
+		virtual bool isDataPending(void);
 
 		/** Set color flag */
 		void setColor(bool flag) { sendcolor = flag;}
@@ -97,16 +138,15 @@ class Descriptor : public QSocket
 		bool getColor(void) { return sendcolor;}
 
 	protected:
-		/** True if an event is posted */
-		bool outputEventPosted;
-		/** Lock for output event flag */
-		ZThread::FastRecursiveMutex outputEventLock;
 		/** True if we want to send color on the link */
 		bool sendcolor;
+		/** Input buffer */
+		Buffer inBuffer;
+		/** Output buffer */
+		Buffer outBuffer;
 
 	private slots:
 		virtual void readClient(void);
-		virtual void closed(void);
 };
 
 /** Descriptor with hooks to parser

@@ -15,6 +15,8 @@
 #define KOALA_NETWORK_CXX "%A%"
 
 #include <qregexp.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 #include "main.hxx"
 #include "logging.hxx"
@@ -23,11 +25,57 @@
 #include "event.hxx"
 
 namespace koalamud {
+
+/** Initialize a network socket */
+Socket::Socket(int sock = 0)
+	: _sock(sock), _closeme(false)
+{
+	/* If there is no socket, create one */
+	if (_sock == 0)
+	{
+		struct protoent *protoentry = NULL;
+		protoentry = getprotobyname("tcp");
+		_sock = socket(AF_INET, SOCK_STREAM, protoentry->p_proto);
+	}
+
+	/* Set socket options */
+	{
+		/* Set Linger */
+		struct linger l;
+		l.l_onoff = 0;
+		l.l_linger = 0;
+		setsockopt(_sock, SOL_SOCKET, SO_LINGER, &l, sizeof(l));
+	}
+
+	{
+		/* Set non blocking */
+		int sockflags;
+		int result;
+		sockflags = fcntl(_sock, F_GETFL, 0);
+		sockflags |= O_NONBLOCK;
+		result = fcntl(_sock, F_SETFL, sockflags);
+	}
+
+	{
+		/* Set reuse addr */
+		int optval = 1;
+		setsockopt(_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	}
+
+	srv->addSocktoList(this);
+}
+
+/** Destroy a network socket - remove it from the list */
+Socket::~Socket(void)
+{
+	srv->removeSockfromList(this);
+}
+
 /** Initialize a listener object
- * Setup a port listener and update the gui status
- */
+* Setup a port listener and update the gui status
+*/
 Listener::Listener(unsigned int port, porttype_t newporttype = GAMESERVER)
-: QServerSocket(port), _type(newporttype), _port(port)
+: _type(newporttype), _port(port)
 {
     /* Create a list item if the gui is active */
     if (srv->usegui())
@@ -39,6 +87,18 @@ Listener::Listener(unsigned int port, porttype_t newporttype = GAMESERVER)
 			srv->statwin()->updatelistencount();
     }
 
+	/* Finish setting up bind to socket */
+	struct sockaddr_in addr;
+	
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = htons(INADDR_ANY);
+
+	/* Bind away */
+	bind(_sock, (struct sockaddr *)&addr, sizeof(addr));
+	listen(_sock, 5);
+
+	/* Log a message */
 	QString str;
 	QTextOStream os(&str);
 	os << "New ";
@@ -66,13 +126,23 @@ Listener::~Listener()
 	/* remove ourself from the list of listeners */
 }
 
+/** Dispatch a read message.
+ * In listener case, we accept a connection and call newConnection with it.
+ */
+void Listener::dispatchRead(void)
+{
+	struct sockaddr addr;
+	socklen_t slen = sizeof(struct sockaddr);
+
+	int newsock = accept(_sock, &addr, &slen);
+	newConnection(newsock);
+}
+
 /** Handle a newly accepted connection and bring it into the game world */
 void Listener::newConnection(int socket)
 {
 	ParseDescriptor *desc;
 
-	/* FIXME:  This should be based on the listener type and in most cases
-	 * simply create a descriptor - not a playerchar object. */
 	switch (_type)
 	{
 		case GAMESERVER:
@@ -84,16 +154,50 @@ void Listener::newConnection(int socket)
 
 /** Construct a Descriptor object */
 Descriptor::Descriptor(int sock)
-	: QSocket(), outputEventPosted(false), sendcolor(false)
+	: Socket(sock), sendcolor(false), inBuffer(4096), outBuffer(4096)
 {
-	connect(this, SIGNAL(readyRead()), SLOT(readClient()));
-	connect(this, SIGNAL(connectionClosed()), SLOT(closed()));
-	setSocket(sock);
-
 	QString str;
 	QTextOStream os(&str);
-	os << "New connection from " << peerAddress().toString();
+	os << "New connection from Unknown";
 	Logger::msg(str);
+}
+
+/** Dispatch read read events for Descriptors */
+void Descriptor::dispatchRead(void)
+{
+	/* Read data into the buffer from the socket, then pass it over to
+	 * readClient */
+	char *start = inBuffer.getTail();
+	int maxread = inBuffer.getFree();
+	int numread = read(_sock, start, maxread);
+	inBuffer.externDatain(numread);
+
+	readClient();
+}
+
+/** Handle write events for descriptors
+ * Take a chunk of data from the outBuffer and send it on to the socket
+ * If the buffer is empty when we are done and we are closing, then close the
+ * socket and selfdestruct
+ */
+void Descriptor::doWrite(void)
+{
+	char buf[512];
+	int len = outBuffer.getData(buf, 512);
+
+	write(_sock, buf, len);
+
+	if (_closeme && outBuffer.isEmpty())
+	{
+		close(_sock);
+		delete this;
+	}
+}
+
+/** Check to see if there is data pending in the output buffer */
+bool Descriptor::isDataPending(void)
+{
+	return !outBuffer.isEmpty();
 }
 
 /** Read data from the socket
@@ -101,32 +205,16 @@ Descriptor::Descriptor(int sock)
  */
 void Descriptor::readClient(void)
 {
-	QTextStream os(this);
-	while ( canReadLine() )
+	QString out;
+	QTextOStream os(&out);
+	char * input;
+	while ((input = inBuffer.getLine())!= NULL)
 	{
-		os << "ECHO: " << readLine();
+		os << "ECHO: " << input;
+		free(input);
 	}
 	os << endl;
-}
-
-/** If there is not an unprocessed event for output, post one */
-void Descriptor::notifyOutput(Char *ch)
-{
-	outputEventLock.acquire();
-	if (!outputEventPosted)
-	{
-		outputEventPosted = true;
-		QThread::postEvent(this, new CharOutputEvent(ch));
-	}
-	outputEventLock.release();
-}
-
-/** Connection was closed
- * Our connection closed.  SelfDestruct
- */
-void Descriptor::closed(void)
-{
-	delete this;
+	send(out);
 }
 
 /** Send data out to the network
@@ -134,7 +222,6 @@ void Descriptor::closed(void)
  */
 void Descriptor::send(QString data)
 {
-	QTextStream os(this);
 	char *dataout, *outpos;
 	const char *datain = data.latin1();
 	unsigned int count;
@@ -246,42 +333,23 @@ void Descriptor::send(QString data)
 				pos++;
 			}
 		}
-		os << dataout;
+		/* Put this on the output buffer */
+		char *bufpos = outBuffer.getTail();
+		int outlen = strlen(dataout);
+		if (outlen > outBuffer.getFree())
+			outlen = outBuffer.getFree();
+		strncpy(bufpos, dataout, outlen);
+		outBuffer.externDatain(outlen);
 		delete[] dataout;
 	} else {
-		os << datain;
+		/* Put this on the output buffer */
+		char *bufpos = outBuffer.getTail();
+		int outlen = strlen(datain);
+		if (outlen > outBuffer.getFree())
+			outlen = outBuffer.getFree();
+		strncpy(bufpos, datain, outlen);
+		outBuffer.externDatain(outlen);
 	}
-}
-
-/** Handle incoming events */
-bool Descriptor::event(QEvent *event)
-{
-	outputEventLock.acquire();
-	static bool disconeventposted = false;
-	if (event->type() == EVENT_CHAR_OUTPUT)
-	{
-		outputEventPosted = false;
-		CharOutputEvent *ce = (CharOutputEvent *)event;
-		if (ce->_ch->isDisconnecting())
-		{
-			if (disconeventposted)
-			{
-				outputEventLock.release();
-				delete ce->_ch;
-				delete this;
-				return true;
-			}
-			disconeventposted = true;
-			QThread::postEvent(this, new CharOutputEvent(ce->_ch));
-			outputEventPosted = true;
-			outputEventLock.release();
-		} else {
-		}
-		outputEventLock.release();
-		return true;
-	}
-	outputEventLock.release();
-	return false;
 }
 
 /** Construct a Descriptor object
@@ -299,14 +367,15 @@ ParseDescriptor::ParseDescriptor(int sock, Parser *parser = NULL)
  */
 void ParseDescriptor::readClient(void)
 {
-	while (canReadLine())
+	char *input;
+	while ((input = inBuffer.getLine()) != NULL )
 	{
 		if (_parse)
 		{
-			_parse->parseLine(readLine());
+			_parse->parseLine(QString(input));
 		} else {
-			readLine();
 		}
+		free(input);
 	}
 }
 

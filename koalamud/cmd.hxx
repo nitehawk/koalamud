@@ -19,6 +19,7 @@
 #include <qstring.h>
 
 #include "main.hxx"
+#include "exception.hxx"
 #include "playerchar.hxx"
 
 /* New Command stuff */
@@ -35,12 +36,21 @@ class Command
 	protected:
 		/** Pointer to player executing this command */
 		K_PlayerChar *_ch;
+		/** True if we are overriding permissions - may not be needed */
+		bool _overrideperms;
 
 	public:
 		/** Normal Constructor 
 		 * @param ch Pointer to player executing command
+		 * @param overrideperms Override command permissions (used in granting a
+		 * command to make sure it is a valid command before updating the
+		 * database)
 		 */
-		Command(K_PlayerChar *ch) : _ch(ch) {}
+		Command(K_PlayerChar *ch, bool overrideperms=false)
+				: _ch(ch), _overrideperms(overrideperms) {}
+
+		virtual unsigned int runCmd(QString cmd, QString args)
+				throw (koalamud::exceptions::cmdpermdenied);
 		/** Virtual destructor to make sure we delete things properly */
 		virtual ~Command(void) {}
 
@@ -48,6 +58,22 @@ class Command
 		 * @todo This will need to accept some parameters to attach the command to
 		 * parameters and other information needed to actually run the command */
 		virtual unsigned int run(QString cmd, QString args) = 0;
+
+		/** Is this a restricted command
+		 * Default is unrestricted.  Override in command trees that are restricted
+		 * or in single commands to return true. */
+		virtual bool isRestricted(void) const { return false; }
+
+		/** Get a list of command groups that this command belongs to.
+		 * Return a QStringList of command groups.  These must match the gnames in
+		 * the database exactly. */
+		virtual QStringList getCmdGroups(void) const { QStringList ql; return ql; }
+
+		/** Return the name of this command.
+		 * This is used in looking up specific grant/deny permissions
+		 * Reimplement this function if individual grant/deny is desired on this
+		 * command */
+		virtual QString getCmdName(void) const { return ""; }
 
 		/** Operator new overload */
 		void * operator new(size_t obj_size)

@@ -103,8 +103,7 @@ class Char : public QObject
 		virtual bool sendtochar(QString data);
 		/** Send prompt to descriptor */
 		virtual void sendPrompt(void) { sendtochar("prompt>\377\371");}
-		/** Reset disconnecting status */
-		virtual void setdisconnect(bool dis = true) { _disconnecting = dis;}
+		virtual void setdisconnect(bool dis = true);
 		/** A channel has just been deleted */
 		virtual void channeldeleted(Channel *chan) { if (chan) return;}
 		/** Handle closing descriptor */

@@ -21,9 +21,15 @@
 #include "network.hxx"
 #include "koalastatus.h"
 #include "cmd.hxx"
+#include "memory.hxx"
 
 int main( int argc, char **argv )
 {
+	/* Seed the allocator with some pool sizes to get things going */
+	poolalloc.createpool(260);
+
+	cout << poolalloc << endl;
+
 	executor = new ZThread::PoolExecutor<false>(TPMIN, TPMAX);
   guiactive = true;
 
@@ -52,10 +58,11 @@ int main( int argc, char **argv )
 	
 
 	/* Start a listener */
-	 new KoalaServer(4444);
+	new KoalaServer(4444);
 
-   int res = a.exec();
-	 executor->cancel();
-	 executor->join();
-	 return res;
+  int res = a.exec();
+	executor->cancel();
+	executor->join();
+	cout << poolalloc << endl;
+	return res;
 }

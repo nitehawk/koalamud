@@ -62,6 +62,13 @@ QString Char::getName(Char *pair=NULL)
 	}
 }
 
+/** Reset disconnecting status */
+void Char::setdisconnect(bool dis = true)
+{
+	_disconnecting = dis;
+	_desc->markClose();
+}
+
 /** Is this character visible to the @a pair character. */
 bool Char::visibleTo(Char *pair)
 {
@@ -182,7 +189,6 @@ bool Char::sendtochar(QString data)
 	if (_desc)
 	{
 		_desc->send(data);
-		_desc->notifyOutput(this);
 		return true;
 	}
 	return false;

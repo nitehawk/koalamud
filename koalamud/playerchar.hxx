@@ -25,6 +25,7 @@
 #include <zthread/Thread.h>
 
 #include "main.hxx"
+#include "autoptr.hxx"
 #include "char.hxx"
 #include "network.hxx"
 #include "koalastatus.h"
@@ -47,11 +48,14 @@ typedef plrtextin_t *plrtextin_pt;
 class K_PCInputTask : public ZThread::Runnable
 {
 	protected:
-		K_PlayerChar *ch;
+		KRefPtr<K_PlayerChar> ch;
 
 	public:
-		K_PCInputTask(K_PlayerChar *plrchar) : ch(plrchar) {}
+		K_PCInputTask(K_PlayerChar *plrchar);
+		K_PCInputTask(KRefPtr<K_PlayerChar> &plrchar);
+		virtual ~K_PCInputTask(void);
 		virtual void run(void) throw();
+
 };
 
 
@@ -59,7 +63,8 @@ class K_PCInputTask : public ZThread::Runnable
  * Player Character object - Handles interaction that is specific to player characters.
  * Matthew Schlegel
  **/
-class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
+class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char,
+										 public virtual KRefObj
 {
     Q_OBJECT
 
@@ -79,6 +84,14 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
 		virtual void setName(QString name);
 		virtual void sendWelcome(void);
 		virtual bool event(QEvent *e);
+
+		/** Operator new overload */
+		void * operator new(size_t obj_size)
+			{ return poolalloc.alloc(obj_size); }
+
+		/** Operator delete overload */
+		void operator delete(void *ptr)
+			{ poolalloc.free(ptr); }
     
     private slots:
     virtual void readclient(void);

@@ -50,7 +50,7 @@ class PlayerChar : public Char
 		virtual void setDesc(ParseDescriptor *desc);
 	
 	public slots:
-		virtual void descriptorClosing(void);
+		virtual void descriptorClosed(void);
 };
 	
 }; /* end koalamud namespace */

@@ -32,8 +32,12 @@ namespace koalamud {
 
 /** Build Player character object, including loading from the database */
 PlayerChar::PlayerChar(QString name, ParseDescriptor *desc = NULL)
-	: Char(name, desc)
+	: Char(name, NULL)
 {
+
+	if (desc)
+		setDesc(desc);
+	
 	if (srv->usegui())
 	{
 	}
@@ -80,7 +84,7 @@ PlayerChar::~PlayerChar(void)
  * This tags the player as linkless and starts a counter.  When the counter
  * reaches a specific threhold, the player is logged off completely.
  */
-void PlayerChar::descriptorClosing(void)
+void PlayerChar::descriptorClosed(void)
 {
 	/* Until we actually get the event/tick thread setup, we just log off the
 	 * player (delete player object).

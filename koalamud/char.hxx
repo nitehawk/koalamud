@@ -83,6 +83,8 @@ class Char : public QObject
 		 */
 		void setRoom(Room *newroom) { _inroom = newroom; }
 		QString languageMorph(QString langid, QString msg, bool spoken = false);
+		/** Should we show a compass in room descriptions */
+		bool showCompass(void) const { return true; }
 		
 
 	public: /* Pure virtuals */
@@ -100,7 +102,7 @@ class Char : public QObject
 		/** Send data to character */
 		virtual bool sendtochar(QString data);
 		/** Send prompt to descriptor */
-		virtual void sendPrompt(void) { sendtochar("prompt>");}
+		virtual void sendPrompt(void) { sendtochar("prompt>\377\371");}
 		/** Reset disconnecting status */
 		virtual void setdisconnect(bool dis = true) { _disconnecting = dis;}
 		/** A channel has just been deleted */

@@ -1,0 +1,34 @@
+KoalaMud Gen 2
+Copyright (c) 2002 First Step Internet Services, Inc.
+
+
+World Database General information
+
+Unlike most muds that use a simple room number to reference the 'rooms' in the
+game, KoalaMud uses a 3D coordinate system.  These coordinates work just like
+they would in the real world, with latitude, longitude, and elevation.  The
+benefit to this system is that components such as wilderness can be "sparse
+saved" without any significant challenge.  It also allows flexibility in area
+creation - Doors/paths to other rooms can be selected from a list of existing
+nearby rooms, or specified with absolute coordinates, depending on how its
+desired.
+
+The range for all three coordinates is between -2,147,483,648 and
+2,147,483,647.  This yields the maximum number of rooms to be well over 70
+quadrillion billions (4,294,967,294^3).  At any rate, more then enough room
+for your game, no matter how big you make it....
+
+
+Specifics:
+The KoalaMud database backend uses MySQL.  It may be possible to use
+postgresql, oracle, and a couple other backends with minimal work as well.
+
+Create a database for your game system in mysql:
+create database koalamud;
+
+Grant all privileges on this database to a user for the game:
+grant all privileges on koalamud.* to koalamud@localhost identified by 'moo';
+
+Update database.cpp with the appropriate hostname, username, password, and
+database name.  The game server will take care of building all of the tables
+it needs on its first bootup.

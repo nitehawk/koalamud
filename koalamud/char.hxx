@@ -30,6 +30,7 @@ namespace koalamud {
 
 #include "network.hxx"
 #include "cmd.hxx"
+#include "comm.hxx"
 
 namespace koalamud {
 /** Character abstract base class
@@ -93,6 +94,8 @@ class Char : public QObject
 		virtual void sendPrompt(void) { sendtochar("prompt>");}
 		/** Reset disconnecting status */
 		virtual void setdisconnect(bool dis = true) { _disconnecting = dis;}
+		/** A channel has just been deleted */
+		virtual void channeldeleted(Channel *chan) { if (chan) return;}
 
 	public: /* Operators */
 		/** Operator new overload */

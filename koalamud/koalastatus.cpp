@@ -76,7 +76,8 @@ KoalaStatus::KoalaStatus( QWidget* parent,  const char* name, WFlags fl )
 	PlayerStatusList = new QListView(PlayerStatusDock, "PlrStatList");
 	PlayerStatusList->addColumn("Player");
 	PlayerStatusList->addColumn("Level");
-	PlayerCountItem = new QListViewItem(PlayerStatusList, "Total", "0");
+	PlayerStatusList->addColumn("State");
+	PlayerCountItem = new QListViewItem(PlayerStatusList, "Total", "0", "");
 	PlayerStatusDock->setWidget(PlayerStatusList);
 	PlayerStatusDock->setResizeEnabled(true);
 	moveDockWindow(PlayerStatusDock, DockLeft);

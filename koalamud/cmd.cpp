@@ -339,6 +339,40 @@ class Look : public Command
 
 };
 
+/** CommandList command class */
+class CommandList : public Command
+{
+	public:
+		/** Pass through constructor */
+		CommandList(Char *ch) : Command(ch) {}
+		/** Run CommandList command */
+		virtual unsigned int run(QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
+
+			os << maincmdtree->displayBranch() << endl;
+
+			_ch->sendtochar(str);
+
+			return 0;
+		}
+
+		/** Restricted access command. */
+		virtual bool isRestricted(void) const { return true;}
+
+		/** Command Groups */
+		virtual QStringList getCmdGroups(void) const
+		{
+			QStringList gl;
+			gl << "Implementor";
+			return gl;
+		}
+
+		/** Get command name for individual granting */
+		virtual QString getCmdName(void) const { return QString("cmdlist"); }
+};
+
 	}; /* end namespace command */
 
 /** Command Factory for cmd.cpp */
@@ -355,6 +389,7 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 			maincmdtree->addcmd("shutdown", this, 4);
 			maincmdtree->addcmd("grant", this, 5);
 			maincmdtree->addcmd("look", this, 6);
+			maincmdtree->addcmd("cmdlist", this, 7);
 		}
 
 		/** Handle command object creations */
@@ -374,6 +409,8 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 					return new koalamud::commands::Grant(ch);
 				case 6:
 					return new koalamud::commands::Look(ch);
+				case 7:
+					return new koalamud::commands::CommandList(ch);
 			}
 			return NULL;
 		}

@@ -66,7 +66,7 @@ class CommandTree {
 				/** Instantiate the class
 				 * @param ch Pointer to character
 				 */
-				Command *createcommand(K_PlayerChar *ch)
+				Command *createcommand(Char *ch)
 				{ if (_factory != NULL) return _factory->create(_fid, ch);
 					else return NULL; }
 
@@ -106,7 +106,7 @@ class CommandTree {
 		 * @param abbrev true if we want to match abbreviations
 		 * @return pointer to new command object or null if it could not be found.
 		 */
-		Command *findandcreate(QString cmd, K_PlayerChar *ch, bool abbrev = false)
+		Command *findandcreate(QString cmd, Char *ch, bool abbrev = false)
 		{
 			CommandTreeNode *cmdptr = NULL;
 			

@@ -64,10 +64,14 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
     Q_OBJECT
 
 		public:
-		typedef enum {STATE_GETNAME, STATE_PLAYING} state_t;
+		typedef enum {STATE_GETNAME, STATE_NEWPLAYER, STATE_NEWPLAYERCONFIRM,
+									STATE_NEWPASS, STATE_NEWPASSCONFIRM, STATE_GETEMAIL,
+									STATE_EMAILCONFIRM, STATE_GETPASS, STATE_PLAYING} state_t;
 
 		protected:
 		state_t _state;
+		QString _password;
+		QString _email;  // Optional player field
     
     public:
     K_PlayerChar(int sock, QObject *parent=0, const char *name=0);
@@ -88,10 +92,13 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
 
 		virtual void channelsendtochar(K_PlayerChar *, QString, QString, QString);
 		virtual void channeldeleted(KoalaChannel *);
+		virtual void save(void);
+		virtual bool load(bool checkpass = true);
     
     protected:
     QListViewItem *plrstatuslistitem;
 		bool _disconnecting;
+		bool _indatabase;
 
 		QPtrQueue<plrtextin_t> lineinqueue;
 		ZThread::FastRecursiveMutex linequeuelock;

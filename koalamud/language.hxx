@@ -30,11 +30,14 @@ class Language;
 QMap<QString,QString> langidmap;
 /** Map of language names to ids */
 QMap<QString,QString> langnamemap;
+/** Map of short language names to ids */
+QMap<QString,QString> snamemap;
 /** Map language IDs to language objects */
 QDict<Language> languageMap;
 #else
 extern QMap<QString,QString> langidmap;
 extern QMap<QString,QString> langnamemap;
+extern QMap<QString,QString> snamemap;
 extern QDict<Language> languageMap;
 #endif
 
@@ -47,10 +50,12 @@ class Language
 	public:
 		/** Construct a language object */
 		Language(QString langid, QString name, QString parentlang,
-							QString charset)
-			: _id(langid), _name(name), _parent(parentlang), _charset(charset)
+							QString charset, unsigned int difficulty, QString sname)
+			: _id(langid), _name(name), _parent(parentlang), _shortname(sname),
+				_charset(charset), _difficulty(difficulty)
 			{ genCharMap(); languageMap.insert(langid, this);
-				langidmap[langid] = name;  langnamemap[name] = langid; }
+				langidmap[langid] = name;  langnamemap[name] = langid;
+				snamemap[sname] = langid; }
 		/** Destroy a language object (remove ourself from the maps) */
 		~Language(void)
 			{ langidmap.erase(_id); langnamemap.erase(_name);
@@ -86,14 +91,29 @@ class Language
 		void operator delete(void *ptr)
 			{ koalamud::PoolAllocator::free(ptr); }
 
+	public:  /* Property gets */
+		/** Get language ID */
+		QString getID(void) const { return _id; }
+		/** Get language name */
+		QString getName(void) const { return _name; }
+		/** Get language difficulty */
+		unsigned int getDifficulty(void) const { return _difficulty; }
+		/** Get language parent */
+		QString getParent(void) const { return _parent; }
+		/** Get language shortname */
+		QString getShort(void) const { return _shortname; }
+
 	protected:
 		QString _id;  /**< langid - used in markers */
 		QString _name;	/**< Language name */
 		QString _parent; /**< Parent language ID */
+		QString _shortname; /**< Short Language Name */
 		/** Characters to use for this language (all lowercase)
 		 * Characters can be listed more then once to increase weighting of a
 		 * specific character */
 		QString _charset;
+		/** Difficulty of learning language */
+		unsigned int _difficulty;
 
 		/** Map chars into language specific set */
 		char charmap[charmaplen];
@@ -125,6 +145,10 @@ class LanguageOLC : public olc
 		QString charset;
 		/** Language notes, short note about flavoring, etc. */
 		QString notes;
+		/** Language Difficulty */
+		long difficulty;
+		/** Shortname - used in changing languages */
+		QString shortname;
 };
 	
 }; /* end koalamud namespace */

@@ -163,13 +163,41 @@ class MainCommandTree
 		CommandTree *maincmdtree;
 };
 
-}; /* KoalaMud namespace */
+/** Singleton wrapper for the imm command tree
+ * This class simply provides a wrapper around the imm command tree that acts
+ * as a specialized smart pointer singleton
+ */
+class ImmCommandTree
+{
+	public:
+		/** Detroy main command tree */
+		~ImmCommandTree() { delete immcmdtree; }
+		/** Return a pointer to the main command tree */
+		CommandTree * operator->()
+		{
+			static bool initialized = false;
+			if (!initialized)
+			{
+				immcmdtree = new CommandTree;
+				initialized = true;
+			}
+			return immcmdtree;
+		}
 
+	protected:
+		/** Pointer to our command tree */
+		CommandTree *immcmdtree;
+};
 
 #ifdef KOALA_CMDTREE_CXX
-koalamud::MainCommandTree  maincmdtree;
+MainCommandTree  maincmdtree;
+ImmCommandTree  immcmdtree;
 #else
-extern koalamud::MainCommandTree  maincmdtree;
+/** Main command tree singleton */
+extern MainCommandTree  maincmdtree;
+/** Imm command tree singleton */
+extern ImmCommandTree  immcmdtree;
 #endif
+}; /* KoalaMud namespace */
 
 #endif // KOALA_CMDTREE_HXX

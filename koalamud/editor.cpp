@@ -108,6 +108,7 @@ void Editor::parseLine(QString line)
 			{
 				os << endl <<
 "Appending to buffer.  Enter . on separate line to return to menu." << endl;
+				_desc->send(out);
 				curstate = STATE_APPEND;
 				break;
 			}
@@ -118,6 +119,7 @@ void Editor::parseLine(QString line)
 					--insertpos;
 				os << endl <<
 "Inserting into buffer.  Enter . on separate line to return to menu." << endl;
+				_desc->send(out);
 				curstate = STATE_INSERT;
 				break;
 			}
@@ -128,17 +130,24 @@ void Editor::parseLine(QString line)
 				if (!ok)
 				{
 					os << endl << "Need to specify a line or range to delete." << endl;
+					_desc->send(out);
 					break;;
 				}
 				int line2 = cline.section(" ", 2,2).toInt(&ok) - 1;
 				if (ok)
 				{
 					lines.erase(lines.at(line1), lines.at(line2));
+					os << endl << line2 - line1
+						 << " lines deleted.  Type @list to see updated buffer." << endl;
+					_desc->send(out);
 					break;
 				} else {
+					os << endl << "1 line deleted.  Type @list to see updated buffer." << endl;
+					_desc->send(out);
 					lines.erase(lines.at(line1));
 					break;
 				}
+			
 			}
 			if (QString("@help").startsWith(cline.lower()))
 			{

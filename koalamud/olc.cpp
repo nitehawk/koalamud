@@ -63,6 +63,11 @@ void olc::parseLine(QString line)
 				save();
 				break;
 			}
+			if (QString("shell").startsWith(cline.lower()))
+			{
+				_old->parseLine(cline.section(' ', 1));
+				break;
+			}
 			if (QString("abort").startsWith(cline.lower()))
 			{
 				os << "Aborting OLC" << endl;
@@ -311,5 +316,90 @@ olc::field_t *olc::addField(QString name, fieldtype_t type,
 
 	return newfield;
 }
+
+namespace commands {
+/** CommandList command class */
+class Olc : public Command
+{
+	public:
+		/** Pass through constructor */
+		Olc(Char *ch) : Command(ch) {}
+		/** Run Olc command */
+		virtual unsigned int run(QString args)
+		{
+			koalamud::Command *subcmd = NULL;
+
+			/* Get subcommand word */
+			QString word = args.section(' ', 0, 0);
+			
+			/* Lookup the subcommand on the logging subcommand tree */
+			subcmd = olccmdtree->findandcreate(word, _ch, true);
+
+			if (subcmd == NULL && word.length() > 1)
+			{ /* Oops, invalid subcommand */
+				QString str;
+				QTextOStream os(&str);
+				os << "Invalid OLC command."
+				   << endl;
+				_ch->sendtochar(str);
+				return 1;
+			} else if (subcmd == NULL) {
+				/* No subcommand specified */
+				QString str;
+				QTextOStream os(&str);
+				os << "You must specify an olc command."
+				   << endl;
+				_ch->sendtochar(str);
+				return 1;
+			}
+
+			/* Run the subcommand */
+			return subcmd->run(args.section(' ', 1));
+
+			return 0;
+		}
+
+		/** Restricted access command. */
+		virtual bool isRestricted(void) const { return true;}
+
+		/** Command Groups */
+		virtual QStringList getCmdGroups(void) const
+		{
+			QStringList gl;
+			gl << "Implementor" << "Builder" << "Immortal";
+			return gl;
+		}
+
+		/** Get command name for individual granting */
+		virtual QString getCmdName(void) const { return QString("olc"); }
+};
+
+}; /* end namespace command */
+
+/** Command Factory for cmd.cpp */
+class Olc_CPP_CommandFactory : public CommandFactory
+{
+	public:
+		/** Register our commands */
+		Olc_CPP_CommandFactory(void)
+			: CommandFactory()
+		{
+			immcmdtree->addcmd("olc", this, 1);
+		}
+
+		/** Handle command object creations */
+		virtual Command *create(unsigned int id, Char *ch)
+		{
+			switch (id)
+			{
+				case 1:
+					return new koalamud::commands::Olc(ch);
+			}
+			return NULL;
+		}
+};
+
+/** Command factory for cmd.cpp module.  */
+Olc_CPP_CommandFactory Olc_CPP_CommandFactoryInstance;
 
 }; /* end koalamud namespace */

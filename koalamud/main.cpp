@@ -20,15 +20,19 @@
 #include "database.hxx"
 #include "network.hxx"
 #include "koalastatus.h"
-#include "cmd.hxx"
-#include "memory.hxx"
+#include "cmdtree.hxx"
 
+/** Main entry point and server startup */
 int main( int argc, char **argv )
 {
 	/* Seed the allocator with some pool sizes to get things going */
-	poolalloc.createpool(260);
+	//koalamud::PoolAllocator::instance()->createpool(260);
 
-	cout << poolalloc << endl;
+	//maincmdtree->addcmd("test", NULL, 0);
+	//maincmdtree->addcmd("test1", NULL, 0);
+	//maincmdtree->addcmd("test2", NULL, 0);
+
+	cout << *koalamud::PoolAllocator::instance() << endl;
 
 	executor = new ZThread::PoolExecutor<false>(TPMIN, TPMAX);
   guiactive = true;
@@ -53,16 +57,13 @@ int main( int argc, char **argv )
      a.setMainWidget(stat);
    }
 
-	/* Load commands */
-	initcmddict();
-	
-
 	/* Start a listener */
 	new KoalaServer(4444);
 
   int res = a.exec();
 	executor->cancel();
 	executor->join();
-	cout << poolalloc << endl;
+
+	cout << *koalamud::PoolAllocator::instance() << endl;
 	return res;
 }

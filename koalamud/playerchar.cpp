@@ -27,7 +27,8 @@
 /* {{{ Constructor */
 K_PlayerChar::K_PlayerChar(int socket, QObject *parent = NULL,
 				const char *name = NULL)
-  : KoalaDescriptor(socket, parent, name), _state(STATE_GETNAME),
+  : KoalaDescriptor(socket, parent, name), KRefObj(),
+			_state(STATE_GETNAME),
 			_disconnecting(false), _indatabase(false), cmdtaskrunning(false)
 {
     if ( guiactive )
@@ -203,13 +204,13 @@ void K_PlayerChar::sendWelcome(void)
 }
 /* }}} sendWelcome */
 
-/* {{{ parseline */
+/* {{{  parseline */
 void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 {
 	switch (_state)
 	{
 		case STATE_GETNAME:
-		{ /* {{{ */
+		{ /*  */
 			if (cmdword.lower() == "new")
 			{
 				QString toch;
@@ -229,10 +230,10 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 				sendtochar(toch);
 				_state = STATE_GETPASS;
 			}
-		} /* }}} */
+		} /*  */
 		break;
 		case STATE_NEWPLAYER:
-		{ /* {{{ */
+		{ /*  */
 			setName(cmdword);
 			QString toch;
 			QTextOStream os(&toch);
@@ -240,7 +241,7 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 			os << endl << "Is this what you want? ";
 			sendtochar(toch);
 			_state = STATE_NEWPLAYERCONFIRM;
-		} /* }}} */
+		} /*  */
 		break;
 		case STATE_NEWPLAYERCONFIRM:
 		{
@@ -274,7 +275,7 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 		} 
 		break;
 		case STATE_NEWPASSCONFIRM:
-		{ /* {{{ Confirm Password */
+		{ /*  Confirm Password */
 			if (_password != cline)
 			{
 				QString toch;
@@ -297,7 +298,7 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 				sendtochar(toch);
 				_state = STATE_GETEMAIL;
 			}
-		} /* }}} */
+		} /*  */
 		break;
 		case STATE_GETEMAIL:
 		{
@@ -355,7 +356,7 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 				os << "Invalid Password!" << endl;
 				os << "Please enter the name of your character, or 'new' to start ";
 				os << "a new character." << endl;
-				os << "By what name are you known? " << endl;
+				os << "By what name are you known? ";
 				sendtochar(toch);
 				_state = STATE_GETNAME;
 				break;
@@ -487,6 +488,7 @@ void K_PlayerChar::save(void)
 }
 /* }}} save */
 
+/* {{{ Load */
 /* This should only be called at login */
 bool K_PlayerChar::load(bool checkpass = true)
 {
@@ -511,6 +513,10 @@ bool K_PlayerChar::load(bool checkpass = true)
 	QSqlQuery loadq(q);
 	if (loadq.isActive())
 	{
+		if (loadq.numRowsAffected() == 0)
+		{
+			return false;
+		}
 		/* There will only be one record, the index on name ensures that */
 		loadq.next();
 		_email = loadq.value(1).toString();
@@ -520,8 +526,23 @@ bool K_PlayerChar::load(bool checkpass = true)
 		return false;
 	}
 }
+/* }}} Load */
 
 /* {{{ Input task implementation */
+K_PCInputTask::K_PCInputTask(K_PlayerChar *plrchar)
+		: ch(plrchar)
+{
+}
+
+K_PCInputTask::K_PCInputTask(KRefPtr<K_PlayerChar> &plrchar)
+		: ch(plrchar)
+{
+}
+
+K_PCInputTask::~K_PCInputTask()
+{
+}
+
 /* Run an input task and queue another event if more lines of input are
  * available */
 void K_PCInputTask::run(void) throw()
@@ -546,7 +567,7 @@ void K_PCInputTask::run(void) throw()
 	delete ti;
 
 	/* Make sure output gets processed properly */
-	QThread::postEvent(ch, new QCustomEvent(EVENT_CHAR_OUTPUT));
+	QThread::postEvent(*ch, new QCustomEvent(EVENT_CHAR_OUTPUT));
 
 	/* Two checks for this, one at the beginning, and one at the end - This
 	 * makes sure that 'quit' doesn't end up getting ignored */

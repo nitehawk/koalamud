@@ -114,7 +114,6 @@ void olc::parseLine(QString line)
 			}
 			break;
 		case STATE_EDITFIELD:
-			line.truncate(line.length() - 2);
 			/* Check that our input is in the appropriate range */
 			switch (curfield->type)
 			{

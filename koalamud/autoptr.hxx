@@ -23,7 +23,6 @@
 #ifndef KOALA_AUTOPTR_HXX
 #define KOALA_AUTOPTR_HXX "%A%"
 
-#include "zthread/ZThread.h"
 #include "zthread/Guard.h"
 #include "zthread/FastRecursiveMutex.h"
 
@@ -153,6 +152,8 @@ class KRefPtr
 
 		/**
 		 * Free a reference
+		 * @bug at the moment, using autoptrs with this delete enabled
+		 * causes K_PlayerChar objects to be deleted prematurely.
 		 */
 		~KRefPtr(void)
 		{
@@ -160,7 +161,7 @@ class KRefPtr
 			{
 				if (_obj->decrefcount() == 0)
 				{
-					delete _obj;
+					// delete _obj;
 				}
 			}
 		} /* ~KRefPtr */

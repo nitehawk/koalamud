@@ -28,6 +28,7 @@
 #include "network.hxx"
 #include "koalastatus.h"
 #include "cmdtree.hxx"
+#include "language.hxx"
 #include "room.hxx" // Probably temporary
 
 namespace koalamud {
@@ -69,6 +70,7 @@ MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
 		return;
 	}
 
+	Language::loadLanguages();
 }
 
 /** Start everything running

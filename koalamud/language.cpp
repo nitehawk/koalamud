@@ -65,8 +65,7 @@ QString Language::morphString(QString in, int know)
 	 * should allow shop usage in a language with at least 75% know.  */
 	if (know >= 75)
 	{
-		int replace = (int)((((100-know)/100)*msglen)*random()/(RAND_MAX+1.0));
-		replace -= (int)(20*random()/(RAND_MAX+1.0));
+		int replace = (int)((((100-know)/100)*msglen)*(random()/(RAND_MAX+1.0)));
 		for (int i=0; i < replace; i++)
 		{
 			int randpos = (int)(msglen*(random()/(RAND_MAX+1.0)));
@@ -96,12 +95,13 @@ QString Language::morphString(QString in, int know)
 /** Load languages from the database and create language objects */
 void Language::loadLanguages(void)
 {
-	QString query = "select langid, name, parentid, charset from languages;";
+	QString query = "select langid, name, parentid, charset, difficulty, shortname from languages;";
 	QSqlQuery q(query);
 	while (q.next())
 	{
 		new Language(q.value(0).toString(), q.value(1).toString(),
-								 q.value(2).toString(), q.value(3).toString());
+								 q.value(2).toString(), q.value(3).toString(),
+								 q.value(4).toUInt(), q.value(5).toString());
 	}
 }
 
@@ -111,10 +111,12 @@ LanguageOLC::LanguageOLC(Char *ch, ParseDescriptor *pd, Parser *oldParser,
 	: olc(ch, pd, oldParser), langid(id) 
 {
 	addField(QString("Language ID"), FIELD_STRING, &langid, false, 5);
-	addField(QString("Language Name"), FIELD_STRING, &name, true, 20);
+	addField(QString("Language Name"), FIELD_STRING, &name, true, 50);
 	addField(QString("Parent Language ID"), FIELD_STRING, &parentlang, true, 5);
 	addField(QString("Language CharSet"), FIELD_STRING, &charset, true, 50);
 	addField(QString("Notes"), FIELD_STRING, &notes, true, 255);
+	addField(QString("Difficulty"), FIELD_INTEGER, &difficulty, true, 100,0);
+	addField(QString("ShortName"), FIELD_STRING, &shortname, true, 20);
 
 	/* langid will already be checked for validity, so don't worry about it
 	 * here. */
@@ -126,6 +128,9 @@ LanguageOLC::LanguageOLC(Char *ch, ParseDescriptor *pd, Parser *oldParser,
 	name = "New Language";
 	charset = "abcdefghijklmnopqrstuvwxyz";
 	notes = "No language notes";
+	difficulty = 50;
+	shortname = "language";
+	sendMenu();
 }
 
 /** Save Language to database and reload in game version */
@@ -136,17 +141,19 @@ void LanguageOLC::save(void)
 	QSqlQuery q;
 	
 	qos << "replace into languages " << endl
-			<< "(langid, name, parentid, charset, notes) values" << endl
+			<< "(langid, name, parentid, charset, notes, difficulty,shortname)"
+			<< endl << "values" << endl
 			<< "('" << langid << "', '"
 			<< Logger::escapeString(name) << "', '"
 			<< parentlang << "', '"
 			<< Logger::escapeString(charset) << "', '"
-			<< Logger::escapeString(notes) << "');";
+			<< Logger::escapeString(notes) << "', " << difficulty
+			<< ", '" << shortname << "');";
 	q.exec(query);
 
 	/* Reload language */
 	delete Language::getLanguage(langid);
-	new Language(langid, name, parentlang, charset);
+	new Language(langid, name, parentlang, charset, difficulty, shortname);
 }
 
 /** Load language from database for editing */
@@ -156,7 +163,8 @@ bool LanguageOLC::load(void)
 	QTextOStream qos(&query);
 	QSqlQuery q;
 
-	qos << "select langid, name, parentid, charset, notes" << endl
+	qos << "select langid, name, parentid, charset, notes, difficulty," << endl
+			<< "shortname" << endl
 			<< "from languages where langid = '" << langid << "';";
 	if (q.exec(query) && q.numRowsAffected())
 	{
@@ -166,6 +174,8 @@ bool LanguageOLC::load(void)
 		parentlang = q.value(2).toString();
 		charset = q.value(3).toString();
 		notes = q.value(4).toString();
+		difficulty = q.value(5).toUInt();
+		shortname = q.value(6).toString();
 		return true;
 	}
 	return false;
@@ -217,6 +227,50 @@ class LangEdit : public Command
 		virtual QString getCmdName(void) const { return QString("langedit"); }
 };
 
+/** Language List command class */
+class LangList : public Command
+{
+	public:
+		/** Pass through constructor */
+		LangList(Char *ch) : Command(ch) {}
+		/** Run Lang List command */
+		virtual unsigned int run(QString args)
+		{
+			QString out;
+			QTextOStream os(&out);
+			
+			os << "|BLoaded languages|x" << endl
+				 << "|MLanguageID    Short Name         Language Name|x" << endl;
+
+			QDictIterator<Language> lang(languageMap);
+			for( ; lang.current(); ++lang )
+			{
+				os << "  " << (*lang)->getID() << "      "
+					 << (*lang)->getShort() << "      "
+					 << (*lang)->getName() << endl;
+			}
+			
+			os << endl;
+
+			_ch->sendtochar(out);
+			return 0;
+		}
+
+		/** Restricted access command. */
+		virtual bool isRestricted(void) const { return true;}
+
+		/** Command Groups */
+		virtual QStringList getCmdGroups(void) const
+		{
+			QStringList gl;
+			gl << "Implementor" << "Coder" << "Builder" << "Immortal";
+			return gl;
+		}
+
+		/** Get command name for individual granting */
+		virtual QString getCmdName(void) const { return QString("langlist"); }
+};
+
 }; /* end commands namespace */
 
 /** Command Factory for help.cpp */
@@ -228,6 +282,7 @@ class Language_CPP_CommandFactory : public CommandFactory
 			: CommandFactory()
 		{
 			maincmdtree->addcmd("langedit", this, 1);
+			maincmdtree->addcmd("langlist", this, 2);
 		}
 
 		/** Handle command object creations */
@@ -237,6 +292,8 @@ class Language_CPP_CommandFactory : public CommandFactory
 			{
 				case 1:
 					return new koalamud::commands::LangEdit(ch);
+				case 2:
+					return new koalamud::commands::LangList(ch);
 			}
 			return NULL;
 		}

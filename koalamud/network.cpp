@@ -14,6 +14,8 @@
 
 #define KOALA_NETWORK_CXX "%A%"
 
+#include <qregexp.h>
+
 #include "main.hxx"
 #include "logging.hxx"
 #include "network.hxx"
@@ -82,7 +84,7 @@ void Listener::newConnection(int socket)
 
 /** Construct a Descriptor object */
 Descriptor::Descriptor(int sock)
-	: QSocket(), outputEventPosted(false)
+	: QSocket(), outputEventPosted(false), sendcolor(false)
 {
 	connect(this, SIGNAL(readyRead()), SLOT(readClient()));
 	connect(this, SIGNAL(connectionClosed()), SLOT(closed()));
@@ -128,13 +130,127 @@ void Descriptor::closed(void)
 }
 
 /** Send data out to the network
- * No additional processing is done on the data (subclasses might do some
- * additional stuff here.
+ * This class will replace or strip color codes as needed
  */
 void Descriptor::send(QString data)
 {
 	QTextStream os(this);
-	os << data;
+	char *dataout, *outpos;
+	const char *datain = data.latin1();
+	unsigned int count;
+	unsigned int inlen = data.length();
+	unsigned int pos = 0;
+	const char *inpos = datain;
+	/* Check to see if there are any color code markers - | is our marker */
+	if ((count = data.contains("|")))
+	{
+		outpos = dataout = new char[inlen + count*8];
+		bzero(dataout, inlen + count*8);
+
+		while (pos <= inlen)
+		{
+			if (*inpos != '|')
+			{
+				*outpos++ = *inpos++;
+				pos++;
+			} else {
+				inpos++;
+				pos++;
+				if (*inpos == '|')
+				{
+					*outpos++ = '|';
+				} else if (sendcolor) {
+					/* interpret a color code */
+					switch(*inpos)
+					{
+						case 'x':
+							strcpy(outpos,"\x1B[0;0m");
+							outpos += 6;
+							break;
+						case 'l':
+							strcpy(outpos,"\x1B[0;30m");
+							outpos += 7;
+							break;
+						case 'r':
+							strcpy(outpos,"\x1B[0;31m");
+							outpos += 7;
+							break;
+						case 'g':
+							strcpy(outpos,"\x1B[0;32m");
+							outpos += 7;
+							break;
+						case 'y':
+							strcpy(outpos,"\x1B[0;33m");
+							outpos += 7;
+							break;
+						case 'b':
+							strcpy(outpos,"\x1B[0;34m");
+							outpos += 7;
+							break;
+						case 'm':
+							strcpy(outpos,"\x1B[0;35m");
+							outpos += 7;
+							break;
+						case 'c':
+							strcpy(outpos,"\x1B[0;36m");
+							outpos += 7;
+							break;
+						case 'w':
+							strcpy(outpos,"\x1B[0;37m");
+							outpos += 7;
+							break;
+						case 'L':
+							strcpy(outpos,"\x1B[1;30m");
+							outpos += 7;
+							break;
+						case 'R':
+							strcpy(outpos,"\x1B[1;31m");
+							outpos += 7;
+							break;
+						case 'G':
+							strcpy(outpos,"\x1B[1;32m");
+							outpos += 7;
+							break;
+						case 'Y':
+							strcpy(outpos,"\x1B[1;33m");
+							outpos += 7;
+							break;
+						case 'B':
+							strcpy(outpos,"\x1B[1;34m");
+							outpos += 7;
+							break;
+						case 'M':
+							strcpy(outpos,"\x1B[1;35m");
+							outpos += 7;
+							break;
+						case 'C':
+							strcpy(outpos,"\x1B[1;36m");
+							outpos += 7;
+							break;
+						case 'W':
+							strcpy(outpos,"\x1B[1;37m");
+							outpos += 7;
+							break;
+						default:
+							*outpos++ = '|';
+							*outpos++ = *inpos;
+					}
+				} else {
+					if (!index("xlrgybcmwLRGYBCMW", *inpos))
+					{
+						*outpos++ = '|';
+						*outpos++ = *inpos;
+					}
+				}
+				inpos++;
+				pos++;
+			}
+		}
+		os << dataout;
+		delete[] dataout;
+	} else {
+		os << datain;
+	}
 }
 
 /** Handle incoming events */

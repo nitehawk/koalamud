@@ -91,11 +91,18 @@ class Descriptor : public QSocket
 		virtual bool event(QEvent *event);
 		void notifyOutput(Char *ch);
 
+		/** Set color flag */
+		void setColor(bool flag) { sendcolor = flag;}
+		/** Get color flag */
+		bool getColor(void) { return sendcolor;}
+
 	protected:
 		/** True if an event is posted */
 		bool outputEventPosted;
 		/** Lock for output event flag */
 		ZThread::FastRecursiveMutex outputEventLock;
+		/** True if we want to send color on the link */
+		bool sendcolor;
 
 	private slots:
 		virtual void readClient(void);

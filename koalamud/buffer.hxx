@@ -72,6 +72,7 @@ class Buffer
 		bool isFull(void) { return (getFree() == 0); }
 		/** Is the buffer empty */
 		bool isEmpty(void) { return (_head == _tail); }
+		bool canReadLine(void);
 
 		/* Put data in */
 		/** Lock the buffer and return the tail of the buffer */

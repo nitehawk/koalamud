@@ -186,4 +186,32 @@ int Buffer::getData(char *buf, int max)
 	return getthis;
 }
 
+/** Return true if getData would return anything other than NULL */
+bool Buffer::canReadLine(void)
+{
+	lock();
+	/* Since there isn't a version of strchr or index that will use a length
+	 * flag, we'll roll our own. */
+	char *pos = _head;
+	while (pos != _tail) {
+		if (*pos == '\n')
+			break;
+		++pos;
+	}
+	if (*pos != '\n')
+	{
+		/* We don't have a full line available */
+		if (isFull())
+		{
+			unlock();
+			return true;
+		}
+		unlock();
+		return false;
+	}
+
+	unlock();
+	return true;
+}
+
 }; /* end koalamud namespace */

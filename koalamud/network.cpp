@@ -15,6 +15,7 @@
 #define KOALA_NETWORK_CXX "%A%"
 
 #include "main.hxx"
+#include "logging.hxx"
 #include "network.hxx"
 #include "playerchar.hxx"
 
@@ -50,6 +51,7 @@ KoalaServer::~KoalaServer()
 /** Handle a newly accepted connection and bring it into the game world */
 void KoalaServer::newConnection(int socket)
 {
+	Logger::msg("Accepting new Player connection.");
 	/* FIXME:  This should probably go through a factory of some variety to
 	 * provide some flexibility */
   new K_PlayerChar(socket);

@@ -162,7 +162,7 @@ void MainServer::parseargs(int argc, char **argv) throw (koalaexception)
 /** Return current version string */
 QString MainServer::versionstring(void)
 {
-	return "KoalaMud Gen2 v0.3.5a";
+	return "KoalaMud Gen2 v0.3.6a";
 }
 
 /** Return server usage string */

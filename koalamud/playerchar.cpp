@@ -26,6 +26,7 @@
 #include "playerchar.hxx"
 #include "cmdtree.hxx"
 #include "logging.hxx"
+#include "room.hxx"
 
 namespace koalamud {
 
@@ -54,6 +55,12 @@ PlayerChar::PlayerChar(QString name, ParseDescriptor *desc = NULL)
 	QTextOStream os(&str);
 	os << name << " is now connected.";
 	Logger::msg(str);
+
+	if (_inroom)
+	{
+		_inroom->enterRoom(this);
+		sendtochar(_inroom->displayRoom(this, false));
+	}
 }
 
 /** Destroy a player character object */
@@ -100,6 +107,7 @@ bool PlayerChar::load(void)
 {
 	/* turn on color */
 	_desc->setColor(true);
+	_inroom = Room::findRoom(0,0,0,0);
 	return false;
 }
 

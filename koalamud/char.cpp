@@ -13,22 +13,25 @@
 
 #define KOALA_CHAR_CXX "%A%"
 
+#include <qregexp.h>
+
+#include "main.hxx"
 #include "char.hxx"
+#include "event.hxx"
 
-K_Char::K_Char()
+namespace koalamud
 {
-}
-/** K_Char DestructorBar */
- K_Char::~K_Char()
-{
-}
 
-void K_Char::setName(QString name)
-{
-	_name = name;
-}
-
-QString K_Char::getName(K_Char *pair=NULL)
+/** Get the characters name.
+ * If @a pair is specified, this will check if the character is visible to the
+ * character pointed to by @a pair.  If they are visible, it will next check
+ * to see if they know each other.
+ * @note getVoice (currently unimplemented) will return a string for the voice
+ * of a character.   getVoice should be used in all comm functions.  getName
+ * should be used anywhere where you would 'see' the character (listed in
+ * room, looking at character, etc.)
+ */
+QString Char::getName(Char *pair=NULL)
 {
 	if (pair == NULL)
 		return _name;
@@ -42,7 +45,112 @@ QString K_Char::getName(K_Char *pair=NULL)
 	}
 }
 
-bool K_Char::visibleTo(K_Char *pair)
+/** Is this character visible to the @a pair character. */
+bool Char::visibleTo(Char *pair)
 {
 	return true;
 }
+
+/** Send a message from a channel on to the char */
+void Char::channelsendtochar(Char *from, QString templateall,
+			QString templatesender, QString msg)
+{
+	if (from == this)
+	{
+		/* This is the version to ourself, fill in template sender and send it on
+		 */
+		QString outmsg;
+		outmsg = templatesender.replace(QRegExp("%sender%"), "You");
+		outmsg = outmsg.replace(QRegExp("%message%"), msg);
+		QString endline;
+		QTextOStream os(&endline);
+		os << endl;
+		sendtochar(outmsg);
+		sendtochar(endline);
+		return;
+	} else
+	{
+		QString outmsg;
+		if (from != NULL)
+		{
+			outmsg = templateall.replace(QRegExp("%sender%"),
+						from->getName(this) );
+		}
+		outmsg = outmsg.replace(QRegExp("%message%"), msg);
+		QString endline;
+		QTextOStream os(&endline);
+		os << endl;
+		sendtochar(outmsg);
+		sendtochar(endline);
+	}
+}
+
+/** Add a command to the command queue
+ * Also make sure a task is in existance to eventually run it.
+ */
+void Char::queueCommand(Command *cmd, QString args)
+{
+	cmdqueueitem *newitem = new cmdqueueitem;
+	newitem->cmd = cmd;
+	newitem->args = args;
+
+	cmdqueuelock.acquire();
+	cmdqueue.enqueue(newitem);
+	if (!cmdtaskrunning)
+	{
+		cmdtaskrunning = true;
+		/* Queue task */
+		srv->executor()->execute(new cmdexectask(this));
+	}
+	cmdqueuelock.release();
+}
+
+bool Char::sendtochar(QString data)
+{
+	if (_desc)
+	{
+		_desc->send(data);
+		QThread::postEvent(_desc, new CharOutputEvent(this));
+		return true;
+	}
+	return false;
+}
+
+/* {{{ cmdexectask implementation */
+/** Initialize a command execution task */
+void Char::cmdexectask::run(void)
+{
+	/* Don't do anything if we are are a player and disconnecting */
+	if (_ch->isDisconnecting() && _ch->isPC())
+		return;
+
+	/* Get the first pending command */
+	_ch->cmdqueuelock.acquire();
+	cmdqueueitem *cmditem = _ch->cmdqueue.dequeue();
+	_ch->cmdqueuelock.release();
+
+	/* run command */
+	cmditem->cmd->runCmd(cmditem->args);
+
+	/* cleanup */
+	delete cmditem->cmd;
+	delete cmditem;
+	
+	/* Don't schedule any more command executors if we are disconnecting */
+	if (_ch->isDisconnecting())
+		return;
+
+	/* If there are more commands pending, start another executor */
+	_ch->cmdqueuelock.acquire();
+	if (_ch->cmdqueue.isEmpty())
+	{
+		_ch->cmdtaskrunning = false;
+	} else {
+		srv->executor()->execute(new cmdexectask(_ch));
+	}
+	_ch->cmdqueuelock.release();
+}
+
+/* }}} end cmdexectask implementation */
+
+}; /* End koalamud namespace */

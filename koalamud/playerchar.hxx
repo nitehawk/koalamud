@@ -25,112 +25,46 @@
 #include <zthread/Thread.h>
 
 #include "main.hxx"
-#include "autoptr.hxx"
 #include "char.hxx"
 #include "network.hxx"
 #include "koalastatus.h"
-
-class K_PlayerChar;
 #include "cmd.hxx"
 #include "comm.hxx"
 
-/* Small struct used to hold the strings for commands so they can be queued in
- * a text-in queue */
-typedef struct {
-	QString line;
-	QString cline;
-	QString cmdword;
-} plrtextin_t;
-typedef plrtextin_t *plrtextin_pt;
+namespace koalamud {
 
-/* This task class is used to run commands in one of the threadpool threads to
- * make sure we don't block the entire system executing commands */
-class K_PCInputTask : public ZThread::Runnable
+/** Player Character
+ * This class is used for all normal players connected to the system.
+ */
+class PlayerChar : public Char
 {
-	protected:
-		KRefPtr<K_PlayerChar> ch;
+	Q_OBJECT
 
 	public:
-		K_PCInputTask(K_PlayerChar *plrchar);
-		K_PCInputTask(KRefPtr<K_PlayerChar> &plrchar);
-		virtual ~K_PCInputTask(void);
-		virtual void run(void) throw();
-
+		PlayerChar(QString name, ParseDescriptor *desc=NULL);
+		virtual ~PlayerChar(void);
+		/** Load player from database */
+		virtual bool load(void) {return false;}
+		/** Save player to database */
+		virtual bool save(void) {return false;}
 };
-
-
-/**
- * Player Character object - Handles interaction that is specific to player characters.
- * Matthew Schlegel
- **/
-class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char,
-										 public virtual KRefObj
-{
-    Q_OBJECT
-
-		public:
-		typedef enum {STATE_GETNAME, STATE_NEWPLAYER, STATE_NEWPLAYERCONFIRM,
-									STATE_NEWPASS, STATE_NEWPASSCONFIRM, STATE_GETEMAIL,
-									STATE_EMAILCONFIRM, STATE_GETPASS, STATE_PLAYING} state_t;
-
-		protected:
-		state_t _state;
-		QString _password;
-		QString _email;  // Optional player field
-    
-    public:
-    K_PlayerChar(int sock, QObject *parent=0, const char *name=0);
-    virtual ~K_PlayerChar();
-		virtual void setName(QString name);
-		virtual void sendWelcome(void);
-		virtual bool event(QEvent *e);
-
-		/** Operator new overload */
-		void * operator new(size_t obj_size)
-			{ return koalamud::PoolAllocator::alloc(obj_size); }
-
-		/** Operator delete overload */
-		void operator delete(void *ptr)
-			{ koalamud::PoolAllocator::free(ptr); }
-    
-    private slots:
-    virtual void readclient(void);
-
-		public slots:
-		virtual void setdisconnect(bool dis = true) { _disconnecting = dis; }
-		virtual void parseline(QString line, QString cline, QString cmdword);
-		virtual void updateguistatus(void);
-		virtual bool sendtochar(QString text);
-
-		virtual void channelsendtochar(K_PlayerChar *, QString, QString, QString);
-		virtual void channeldeleted(KoalaChannel *);
-		virtual void save(void);
-		virtual bool load(bool checkpass = true);
-    
-    protected:
-    QListViewItem *plrstatuslistitem;
-		bool _disconnecting;
-		bool _indatabase;
-
-		QPtrQueue<plrtextin_t> lineinqueue;
-		ZThread::FastRecursiveMutex linequeuelock;
-		// If true, there is either a command task running or scheduled and
-		// readclient doesn't need to create one.
-		bool cmdtaskrunning;  
-
-		friend class K_PCInputTask;
-};
+	
+}; /* end koalamud namespace */
 
 /* Two lists of players used, one linked list and one hashmap */
-typedef QPtrList<K_PlayerChar> playerlist_t;
-typedef QPtrListIterator<K_PlayerChar> playerlistiterator_t;
+/** Type of connected player list */
+typedef QPtrList<koalamud::PlayerChar> playerlist_t;
+/** Type of connected player list iterator */
+typedef QPtrListIterator<koalamud::PlayerChar> playerlistiterator_t;
 
 #ifdef KOALA_PLAYERCHAR_CXX
+/** This lists all connected players */
 playerlist_t connectedplayerlist;
-QDict<K_PlayerChar> connectedplayermap(101, false);
+/** This lists all logged in players */
+QDict<koalamud::PlayerChar> connectedplayermap(101, false);
 #else
 extern playerlist_t connectedplayerlist;
-extern QDict<K_PlayerChar> connectedplayermap;
+extern QDict<koalamud::PlayerChar> connectedplayermap;
 #endif
 
 #endif  //  KOALA_PLAYERCHAR_HXX

@@ -23,6 +23,7 @@
 
 int main( int argc, char **argv )
 {
+	executor = new ZThread::PoolExecutor<false>(TPMIN, TPMAX);
   guiactive = true;
 
     /* FIXME:  we need to scan argv for an argument to turn off the gui */
@@ -42,5 +43,8 @@ int main( int argc, char **argv )
 	/* Start a listener */
 	 new KoalaServer(4444);
 
-   return a.exec();
+   int res = a.exec();
+	 executor->cancel();
+	 executor->join();
+	 return res;
 }

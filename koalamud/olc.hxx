@@ -18,6 +18,7 @@
 #include <qptrlist.h>
 
 #include "parser.hxx"
+#include "cmdtree.hxx"
 
 namespace koalamud
 {
@@ -116,6 +117,39 @@ class olc : public Parser
 		/** Current Parse State */
 		parsestate_t curstate;
 };
+
+/** Singleton wrapper for the olc command tree
+ * This class simply provides a wrapper around the imm command tree that acts
+ * as a specialized smart pointer singleton
+ */
+class OlcCommandTree
+{
+	public:
+		/** Detroy main command tree */
+		~OlcCommandTree() { delete olccmdtree; }
+		/** Return a pointer to the main command tree */
+		CommandTree * operator->()
+		{
+			static bool initialized = false;
+			if (!initialized)
+			{
+				olccmdtree = new CommandTree;
+				initialized = true;
+			}
+			return olccmdtree;
+		}
+
+	protected:
+		/** Pointer to our command tree */
+		CommandTree *olccmdtree;
+};
+
+#ifdef KOALA_OLC_CXX
+OlcCommandTree  olccmdtree;
+#else
+/** Main command tree singleton */
+extern OlcCommandTree  olccmdtree;
+#endif
 
 }; /* end koalamud namespace */
 

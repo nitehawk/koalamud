@@ -6,3 +6,5 @@ koalamud.pcs
 .moc
 .obj
 .uic
+.qmake.internal.cache
+*.swp

@@ -15,8 +15,9 @@ CONFIG += debug \
 core {
 	CONFIG += world cmd gui char olc
 	SOURCES += main.cpp network.cpp database.cpp memory.cpp logging.cpp
+	SOURCES += buffer.cpp
 	HEADERS += main.hxx network.hxx database.hxx event.hxx memory.hxx
-	HEADERS += logging.hxx exception.hxx
+	HEADERS += logging.hxx exception.hxx buffer.hxx
 }
 
 olc {

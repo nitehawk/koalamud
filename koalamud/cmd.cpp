@@ -15,54 +15,117 @@
 #define KOALA_CMD_CXX "%A%"
 
 #include "cmd.hxx"
-#include "comm.hxx"
+#include "cmdtree.hxx"
 
-KOALACMD(cmd_quit)
+/* New Command Stuff */
+namespace koalamud {
+	namespace commands {
+/** Memstat command class */
+class Memstat : public Command
 {
-	QString str;
-	QTextOStream os(&str);
+	public:
+		/** Pass through constructor */
+		Memstat(K_PlayerChar *ch) : Command(ch) {}
+		/** Run memstat command */
+		virtual unsigned int run(QString cmd, QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
 
-	os << "Thank you for playing on KoalaMud." << endl;
-	os << "Please return soon." << endl;
-	ch->sendtochar(str);
+			os << *koalamud::PoolAllocator::instance() << endl;;
 
-	ch->setdisconnect(true);
-}
+			_ch->sendtochar(str);
+			return 0;
+		}
 
-KOALACMD(cmd_who)
+};
+
+/** Who command class */
+class Who : public Command
 {
-	QString str;
-	QTextOStream os(&str);
+	public:
+		/** Pass through constructor */
+		Who(K_PlayerChar *ch) : Command(ch) {}
+		/** Run who command */
+		virtual unsigned int run(QString cmd, QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
 
-	/* Grab an iterator to the player list and loop through it */
-	playerlistiterator_t pli(connectedplayerlist);
-	K_PlayerChar *cur;
-	os << "The following players are online: " << endl;
-	while ((cur = pli.current()) != NULL)
-	{
-		++pli;
-		/* Later we'll want to display more information as well as check
-		 * imm invisibility and a lot of other stuff before displaying someone */
-		os << cur->getName(ch) << endl;
-	}
+			/* Grab an iterator to the player list and loop through it */
+			playerlistiterator_t pli(connectedplayerlist);
+			K_PlayerChar *cur;
+			os << "The following players are online: " << endl;
+			while ((cur = pli.current()) != NULL)
+			{
+				++pli;
+				/* Later we'll want to display more information as well as check
+				 * imm invisibility and a lot of other stuff before displaying someone
+				 */
+				os << cur->getName(_ch) << endl;
+			}
 
-	ch->sendtochar(str);
-}
+			_ch->sendtochar(str);
+			return 0;
+		}
 
-KOALACMD(cmd_memstat)
+};
+
+/** Quit command class */
+class Quit : public Command
 {
-	QString str;
-	QTextOStream os(&str);
+	public:
+		/** Pass through constructor */
+		Quit(K_PlayerChar *ch) : Command(ch) {}
+		/** Run quit command */
+		virtual unsigned int run(QString cmd, QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
 
-	os << poolalloc << endl;;
+			os << "Thank you for playing on KoalaMud." << endl;
+			os << "Please return soon." << endl;
+			_ch->sendtochar(str);
 
-	ch->sendtochar(str);
-}
+			_ch->setdisconnect(true);
+			return 0;
+		}
 
-void initcmddict(void)
+};
+
+	}; /* end namespace command */
+
+/** Command Factory for cmd.cpp */
+class Cmd_CPP_CommandFactory : public CommandFactory
 {
-	cmddict.insert(QString("quit"), new cmdentry_t("quit", cmd_quit));
-	cmddict.insert(QString("who"), new cmdentry_t("who", cmd_who));
-	cmddict.insert(QString("memstat"), new cmdentry_t("memstat", cmd_memstat));
-	initcommcmddict();
-}
+	public:
+		/** Register our commands */
+		Cmd_CPP_CommandFactory(void)
+			: CommandFactory()
+		{
+			maincmdtree->addcmd("memstat", this, 1);
+			maincmdtree->addcmd("quit", this, 2);
+			maincmdtree->addcmd("who", this, 3);
+		}
+
+		/** Handle command object creations */
+		virtual Command *create(unsigned int id, K_PlayerChar *ch)
+		{
+			switch (id)
+			{
+				case 1:
+					return new koalamud::commands::Memstat(ch);
+				case 2:
+					return new koalamud::commands::Quit(ch);
+				case 3:
+					return new koalamud::commands::Who(ch);
+			}
+			return NULL;
+		}
+};
+
+/* The factories will only ever have one instance, and it isn't explicitly
+ * used after creation */
+Cmd_CPP_CommandFactory Cmd_CPP_CommandFactoryInstance;
+
+}; /* end namespace koalamud */

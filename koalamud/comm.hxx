@@ -54,9 +54,6 @@ class KoalaChannel : public QObject
 		void channeldeleted(KoalaChannel *chan);
 };
 
-/* Prototypes */
-void initcommcmddict(void);
-
 #ifdef KOALA_COMM_CXX
 QDict<KoalaChannel> channelmap(101, false);
 #else

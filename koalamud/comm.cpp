@@ -16,83 +16,127 @@
 
 #include "comm.hxx"
 #include "playerchar.hxx"
+#include "cmdtree.hxx"
 
-KOALACMD(cmd_tell)
+namespace koalamud {
+	namespace commands {
+
+/** Tell command class */
+class Tell : public Command
 {
-	QString to = args.section(' ', 0, 0);
-	QString msg = args.section(' ', 1);
+	public:
+		/** Pass through constructor */
+		Tell(K_PlayerChar *ch) : Command(ch) {}
 
-	/* Check that we have parameters */
-	if (to.isEmpty())
-	{
-		QString str;
-		QTextOStream os(&str);
-		os << "Who would you like to tell something to?" << endl;
-		ch->sendtochar(str);
-		return;
-	} else if (msg.isEmpty())
-	{
-		QString str;
-		QTextOStream os(&str);
-		os << "What would you like to tell " << to << "?" << endl;
-		ch->sendtochar(str);
-		return;
-	}
+		/** Run tell command */
+		virtual unsigned int run(QString cmd, QString args)
+		{
+			QString to = args.section(' ', 0, 0);
+			QString msg = args.section(' ', 1);
 
-	/* First up we need to get a pointer to the player */
-	K_PlayerChar *tellto = connectedplayermap[to];
-	if (tellto == NULL)
-	{
-		QString str;
-		QTextOStream os(&str);
-		os << "That player is not logged on." << endl;
-		ch->sendtochar(str);
-		return;
-	} else if (ch == tellto)
-	{
-		QString str;
-		QTextOStream os(&str);
-		os << "You try to tell yourself something." << endl;
-		ch->sendtochar(str);
-		return;
-	}
+			/* Check that we have parameters */
+			if (to.isEmpty())
+			{
+				QString str;
+				QTextOStream os(&str);
+				os << "Who would you like to tell something to?" << endl;
+				_ch->sendtochar(str);
+				return 1;
+			} else if (msg.isEmpty())
+			{
+				QString str;
+				QTextOStream os(&str);
+				os << "What would you like to tell " << to << "?" << endl;
+				_ch->sendtochar(str);
+				return 1;
+			}
 
-	/* Construct message to target */
-	QString tstr;
-	QTextOStream tos(&tstr);
-	tos << ch->getName(tellto) << " tells you, '" << msg << "'" << endl;
-	tellto->sendtochar(tstr);
+			/* First up we need to get a pointer to the player */
+			K_PlayerChar *tellto = connectedplayermap[to];
+			if (tellto == NULL)
+			{
+				QString str;
+				QTextOStream os(&str);
+				os << "That player is not logged on." << endl;
+				_ch->sendtochar(str);
+				return 1;
+			} else if (_ch == tellto)
+			{
+				QString str;
+				QTextOStream os(&str);
+				os << "You try to tell yourself something." << endl;
+				_ch->sendtochar(str);
+				return 1;
+			}
 
-	/* Construct message to sender */
-	QString sstr;
-	QTextOStream sos(&sstr);
-	sos << "You tell " << tellto->getName(ch) << ", '" << msg << "'" << endl;
-	ch->sendtochar(sstr);
-}
+			/* Construct message to target */
+			QString tstr;
+			QTextOStream tos(&tstr);
+			tos << _ch->getName(tellto) << " tells you, '" << msg << "'" << endl;
+			tellto->sendtochar(tstr);
 
-KOALACMD(cmd_gossip)
+			/* Construct message to sender */
+			QString sstr;
+			QTextOStream sos(&sstr);
+			sos << "You tell " << tellto->getName(_ch) << ", '" << msg << "'" << endl;
+			_ch->sendtochar(sstr);
+			return 0;
+		}
+};
+
+/** Gossip command class */
+class Gossip : public Command
 {
-	KoalaChannel *goschan = channelmap["gossip"];
-	if (goschan == NULL)
+	public:
+		/** Pass through constructor */
+		Gossip(K_PlayerChar *ch) : Command(ch) {}
+
+		/** Run gossip command */
+		virtual unsigned int run(QString cmd, QString args)
+		{
+			KoalaChannel *goschan = channelmap["gossip"];
+			if (goschan == NULL)
+			{
+				return 1;
+			}
+
+			goschan->sendtochannel(_ch, args);
+			return 0;
+		}
+};
+
+	}; /* end commands namespace */
+	
+	/** Comm Module Command Factory */
+	class Comm_CPP_CommandFactory : public CommandFactory
 	{
-		return;
-	}
+		public:
+			/** Register our commands and create gossip channel */
+			Comm_CPP_CommandFactory(void) : CommandFactory()
+			{
+				new KoalaChannel("gossip", "%sender% gossips, '%message%'",
+							"%sender% gossip, '%message%'");
 
-	goschan->sendtochannel(ch, args);
-}
+				maincmdtree->addcmd("gossip", this, 1);
+				maincmdtree->addcmd("tell", this, 2);
+			}
 
-/* Load communications commands into the dictionary */
-/* NOTE:  We also setup the comm channels here */
-void initcommcmddict(void)
-{
-	cmddict.insert(QString("tell"), new cmdentry_t("tell", cmd_tell));
-	cmddict.insert(QString("gossip"), new cmdentry_t("gossip", cmd_gossip));
-	cmddict.insert(QString("gos"), new cmdentry_t("gossip", cmd_gossip));
-	cmddict.insert(QString("goss"), new cmdentry_t("gossip", cmd_gossip));
+			/** Handle Command object creation */
+			virtual Command *create(unsigned int id, K_PlayerChar *ch)
+			{
+				switch (id)
+				{
+					case 1:
+						return new koalamud::commands::Gossip(ch);
+					case 2:
+						return new koalamud::commands::Tell(ch);
+				}
+				return NULL;
+			}
+	};
 
-	new KoalaChannel("gossip", "%sender% gossips, '%message%'",
-			"%sender% gossip, '%message%'");
-}
+	Comm_CPP_CommandFactory Comm_CPP_CommandFactoryInstance;
+}; /* end koalamud namespace */
 
 /* Channel class implementation */
 KoalaChannel::KoalaChannel(QString name, QString chantemplateall,

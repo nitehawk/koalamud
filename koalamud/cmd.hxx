@@ -18,26 +18,80 @@
 #include <qdict.h>
 #include <qstring.h>
 
-class cmdentry_t;
+#include "main.hxx"
 #include "playerchar.hxx"
 
-typedef void (*cmdfunc_t)(K_PlayerChar *, QString, QString);
+/* New Command stuff */
+namespace koalamud {
 
-#define KOALACMD(cmdn) void cmdn(K_PlayerChar *ch, QString cmd, QString args)
+/** Command base class
+ *
+ * This is the abstract base class for all commands in the system. It provides
+ * the basic functionality for the system, including new/delete overloading,
+ * but leaves 'run()' as a pure virtual function
+ * New commands must implement the constructor and the run function */
+class Command
+{
+	protected:
+		/** Pointer to player executing this command */
+		K_PlayerChar *_ch;
 
-class cmdentry_t {
 	public:
-	QString command;
-	cmdfunc_t cmdfunc;
-	cmdentry_t(QString cmd, cmdfunc_t ptr) : command(cmd), cmdfunc(ptr) {}
+		/** Normal Constructor 
+		 * @param ch Pointer to player executing command
+		 */
+		Command(K_PlayerChar *ch) : _ch(ch) {}
+
+		/** Run the command 
+		 * @todo This will need to accept some parameters to attach the command to
+		 * parameters and other information needed to actually run the command */
+		virtual unsigned int run(QString cmd, QString args) = 0;
+
+		/** Operator new overload */
+		void * operator new(size_t obj_size)
+			{ return koalamud::PoolAllocator::alloc(obj_size); }
+		/** Operator delete overload */
+		void operator delete(void *ptr)
+			{ koalamud::PoolAllocator::free(ptr); }
 };
 
-#ifdef KOALA_CMD_CXX
-QDict<cmdentry_t> cmddict(2531, FALSE);
-#else
-extern QDict<cmdentry_t> cmddict;
-#endif
+/** Command class factory base class
+ *
+ * This class provides the base class for all class factories in the command
+ * system.  It is an abstract base class that cannot be instantiated.
+ *
+ * @author Matthew Schlegel <nitehawk@koalamud.org>
+ */
+class CommandFactory
+{
+	public:
+		/** Null constructor for base class
+		 * For the full implementations of this class, the constructor will add
+		 * all the commands that it creates for into the command tree.
+		 */
+		CommandFactory(void) {}
+		/** Null destructor for base class
+		 * Normally this removes any managed commands from the command tree
+		 */
+		virtual ~CommandFactory(void) {}
 
-void initcmddict(void);
+		/** Create a command object
+		 * The command tree includes a pointer to the factory and an unsigned int
+		 * identifier for each command.  Those values are used to call this
+		 * function which will return a pointer to a new command object.
+		 * @param id used as an identifier specific to a specific command factory
+		 * @param ch Pointer to the character executing this command.
+		 * @return Pointer to new Command object
+		 *
+		 * @todo PlayerChar class needs to be rebuilt in the koalamud namespace
+		 * before we make use of it for the real version of this function.
+		 */
+		virtual Command *create(unsigned int id , K_PlayerChar *ch) = 0;
+		/*virtual Command *create(unsigned int id , PlayerChar *ch) = 0; */
+};
+
+}; /* Koalamud namespace */
+
+#define KOALACMD(cmdn) void cmdn(K_PlayerChar *ch, QString cmd, QString args)
 
 #endif // KOALA_CMD_HXX

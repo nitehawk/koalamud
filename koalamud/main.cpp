@@ -39,7 +39,7 @@ namespace koalamud {
  */
 MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
 	: _executor(NULL), _guiactive(false), _background(false),
-		_profile("default")
+		_profile("default"), shutdown(false)
 {
 	/* Initialize our task pool executor */
 	_executor = new ZThread::PoolExecutor<ZThread::FastMutex>(threadpoolmin, threadpoolmax);
@@ -100,7 +100,84 @@ void MainServer::run(void)
      _statwin->statusBar()->message("online");
    }
 
-	_app->exec();
+	/* Main game loop.  Process Qt events and do our own socket handling for all
+	 * descriptors except the MySQL stuff */
+	{
+		fd_set insockets, outsockets, errsockets;
+		struct timeval waitcycle;
+		int descriptorcount = 0;
+		int maxfd = 0;
+		QPtrListIterator<Socket> desc(socklist);
+		int selectreturn;
+		while (!shutdown)
+		{
+			maxfd = descriptorcount = 0;
+			FD_ZERO(&insockets);
+			FD_ZERO(&outsockets);
+			FD_ZERO(&errsockets);
+
+			/* Loop through the descriptor list and add sockets to approprate lists
+			 */
+			for (desc.toFirst(); desc.current(); ++desc)
+			{
+				/* Everyone gets added to in and error. */
+				FD_SET((*desc)->getSock(), &errsockets);
+				FD_SET((*desc)->getSock(), &insockets);
+
+				if ((*desc)->isDataPending())
+				{
+					FD_SET((*desc)->getSock(), &outsockets);
+				}
+
+				descriptorcount++;
+				if (maxfd < (*desc)->getSock())
+					maxfd = (*desc)->getSock();
+			}
+
+			/* Setup wait timer struct */
+			waitcycle.tv_sec = 0;
+			waitcycle.tv_usec = 50; /* 50 microseconds per loop */
+
+			if ((selectreturn = select(maxfd+1, &insockets, &outsockets,
+																 &errsockets, &waitcycle)) < 0)
+			{
+				if (errno == EINTR)
+				{
+					continue;
+				}
+				return;
+			}
+
+			/* Find activated descriptors */
+			if (selectreturn > 0)
+			{
+				for (desc.toFirst(); desc.current(); ++desc)
+				{
+					/* Check write */
+					if (FD_ISSET((*desc)->getSock(), &outsockets))
+					{
+						(*desc)->doWrite();
+					}
+					
+					/* Check read */
+					if (FD_ISSET((*desc)->getSock(), &insockets))
+					{
+						(*desc)->dispatchRead();
+					}
+
+					/* Check error */
+					if (FD_ISSET((*desc)->getSock(), &errsockets))
+					{
+						/* Close any sockets in error */
+						delete (*desc);
+					}
+				}
+			}
+
+			/* Process Qt Events */
+			_app->processEvents(50);
+		}
+	}
 }
 
 /** Shut down game server */

@@ -18,6 +18,11 @@
 #include <qobject.h>
 #include <qlistview.h>
 #include <qptrlist.h>
+#include <qptrqueue.h>
+
+#include <zthread/FastRecursiveMutex.h>
+#include <zthread/Guard.h>
+#include <zthread/Thread.h>
 
 #include "main.hxx"
 #include "char.hxx"
@@ -26,6 +31,28 @@
 
 class K_PlayerChar;
 #include "cmd.hxx"
+
+/* Small struct used to hold the strings for commands so they can be queued in
+ * a text-in queue */
+typedef struct {
+	QString line;
+	QString cline;
+	QString cmdword;
+} plrtextin_t;
+typedef plrtextin_t *plrtextin_pt;
+
+/* This task class is used to run commands in one of the threadpool threads to
+ * make sure we don't block the entire system executing commands */
+class K_PCInputTask : public ZThread::Runnable
+{
+	protected:
+		K_PlayerChar *ch;
+
+	public:
+		K_PCInputTask(K_PlayerChar *plrchar) : ch(plrchar) {}
+		virtual void run(void) throw();
+};
+
 
 /**
  * Player Character object - Handles interaction that is specific to player characters.
@@ -46,6 +73,7 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
     virtual ~K_PlayerChar();
 		virtual void setName(QString name);
 		virtual void sendWelcome(void);
+		virtual bool event(QEvent *e);
     
     private slots:
     virtual void readclient(void);
@@ -53,10 +81,19 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
 		public slots:
 		virtual void setdisconnect(bool dis = true) { _disconnecting = dis; }
 		virtual void runcmd(cmdentry_t *cmd, QString word, QString arg);
+		virtual void parseline(QString line, QString cline, QString cmdword);
     
     protected:
     QListViewItem *plrstatuslistitem;
 		bool _disconnecting;
+
+		QPtrQueue<plrtextin_t> lineinqueue;
+		ZThread::FastRecursiveMutex linequeuelock;
+		// If true, there is either a command task running or scheduled and
+		// readclient doesn't need to create one.
+		bool cmdtaskrunning;  
+
+		friend class K_PCInputTask;
 };
 
 typedef QPtrList<K_PlayerChar> playerlist_t;

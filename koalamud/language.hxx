@@ -35,12 +35,21 @@ QMap<QString,QString> snamemap;
 /** Map language IDs to language objects */
 QDict<Language> languageMap;
 #else
+/** Map of language ids to languages */
 extern QMap<QString,QString> langidmap;
+/** Map of language names to ids */
 extern QMap<QString,QString> langnamemap;
+/** Map of short language names to ids */
 extern QMap<QString,QString> snamemap;
+/** Map language IDs to language objects */
 extern QDict<Language> languageMap;
 #endif
 
+/** Language Class
+ * This class provides the interface for the language morphing code.  It does
+ * not handle the actual marker extraction, however.  Marker extraction is
+ * done in the Char class, specifically sendtochar.
+ */
 class Language
 {
 	public:
@@ -81,6 +90,9 @@ class Language
 		/** Map language ID to language name */
 		static QString getLangName(QString ID)
 			{ return langidmap[ID]; }
+		/** Map short name to language ID */
+		static QString getLangIDfromShort(QString shortname)
+			{ return snamemap[shortname]; }
 		static void loadLanguages(void);
 			
 	public:

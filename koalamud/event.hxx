@@ -18,6 +18,22 @@
 #include <qevent.h>
 #include <qthread.h>
 
+#include "char.hxx"
+
 #define EVENT_CHAR_OUTPUT		QEvent::User + 1
+
+namespace koalamud {
+	/** Char output event */
+	class CharOutputEvent : public QCustomEvent
+	{
+		public:
+			/** Build Character Output event */
+			CharOutputEvent(Char *ch) : QCustomEvent(EVENT_CHAR_OUTPUT), _ch(ch)
+					{ }
+			/** Pointer to character object */
+			Char *_ch;
+	};
+
+}; /* end koalamud namespace */
 
 #endif //  KOALA_EVENT_HXX

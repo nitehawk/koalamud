@@ -363,17 +363,24 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 		case STATE_PLAYING:
 			/* We use the command tree to search for our command, then call the
 			 * returned pointer's run function */
+			try {
 			koalamud::Command *cmd = maincmdtree->findandcreate(cmdword, this, true);
 			if (cmd)
 			{
 				/* FIXME:  We will need to pass the remainder of our input into this
 				 * function */
-				cmd->run(cmdword, cline.section(' ', 1));
+				cmd->runCmd(cmdword, cline.section(' ', 1));
 				delete cmd;
 			} else {
 				/* Output an error message */
 				QTextStream os(this);
 				os << _name << ", that command is unknown." << endl;
+			}
+			}
+			catch (koalamud::exceptions::cmdpermdenied p)
+			{
+				QTextStream os(this);
+				os << "You do not have permission to run that command." << endl;
 			}
 			break;
 	}

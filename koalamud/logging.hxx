@@ -46,16 +46,19 @@ class Logger : public QObject
 		} log_lev; /**< Logging severity levels */
 
 	protected:
-		/** Force usage as a singleton.  Only instance() can instantiate us */
-		Logger(void) : _minsev(LOG_INFO) {}
-		
 		/** Lowest level we are logging to the database.
 		 * All messages are logged to the console and all messages are sent via
 		 * signals to subscribing players.
 		 */
 		log_lev _minsev;
+		/** Server profile to log.  Should be set before logging stuff */
+		QString profile;
+
+		/** Force usage as a singleton.  Only instance() can instantiate us */
+		Logger(void) : _minsev(LOG_INFO), profile("Default") {}
 
 	public:
+		static QString escapeString(QString str);
 		void imsg(QString lm, log_lev sev = LOG_INFO);
 		/** Log a message to the database */
 		static void msg(QString lm, log_lev sev = LOG_INFO)
@@ -76,6 +79,9 @@ class Logger : public QObject
 		log_lev level(void) { return _minsev; }
 		/** Set the minimum severity for logged messages */
 		void setlevel(log_lev sev) { _minsev = sev; }
+		/** Set profile */
+		static void setProfile(QString profile)
+		{	instance()->profile = profile; }
 
 /* These signals provide the link between the logger and interested listeners.
  * These signals all provide a preformatted string in the form of:

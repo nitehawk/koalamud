@@ -35,14 +35,27 @@ PlayerLoginParser::PlayerLoginParser(Char *ch=NULL, ParseDescriptor *desc=NULL)
 	 * would explicitly cause failure though. */
 	if (_desc)
 	{
-		/* Eventually we will store a variety of welcome screens in the database
-		 * and choose one to send out.  For now, just print a simple welcome. */
-		QString str;
-		QTextOStream os(&str);
+		QString query;
+		QTextOStream qos(&query);
+		QSqlQuery q;
+		qos << "select art from welcomeart order by RAND() limit 1;";
+		if (q.exec(query) && q.numRowsAffected() > 0)
+		{
+			/* Got a welcome screen from the database, send it on to the new
+			 * descriptor */
+			q.next();
+			_desc->send(q.value(0).toString());
+		} else {
+			/* Query for welcome art failed or no art available.  Send a default
+			 * string */
+			QString str;
+			QTextOStream os(&str);
 
-		os << "Welcome to " << srv->versionstring() << endl;
-		os << "By what name are you known? ";
-		_desc->send(str);
+			os << "Welcome to Shadow of the Wheel!" << endl
+				 << "Server running " << srv->versionstring() << endl
+				 << "By what name are you known? ";
+			_desc->send(str);
+		}
 	}
 }
 

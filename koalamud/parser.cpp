@@ -170,7 +170,7 @@ PlayerParser::PlayerParser(Char *ch, ParseDescriptor *desc)
  */
 void PlayerParser::parseLine(QString line)
 {
-	QString cline = line.simplifyWhiteSpace();
+	QString cline = line.stripWhiteSpace();
 	QString cmdword = cline.section(' ', 0, 0);
 
 	/* If they didn't input anything, just send the prompt along */
@@ -181,7 +181,14 @@ void PlayerParser::parseLine(QString line)
 	}
 	
 	/* Search for the command */
-	koalamud::Command *cmd = maincmdtree->findandcreate(cmdword, _ch, true);
+	koalamud::Command *cmd = maincmdtree->findandcreate(cmdword, _ch,
+				/* _ch->isSet(Char::FLAG_ABBREV) */ true);
+
+	if (!cmd && _ch->isImmortal())
+	{
+		cmd = immcmdtree->findandcreate(cmdword, _ch,
+				/* _ch->isSet(Char::FLAG_ABBREV) */ true);
+	}
 	
 	/* If the command wasn't found, say we couldn't find it and move on */
 	if (!cmd)
@@ -194,11 +201,25 @@ void PlayerParser::parseLine(QString line)
 		return;
 	} 
 	
-	/* Append cmd to the command queue */
-	if (cmdword.length() > 0)
-		_ch->queueCommand(cmd, cmdword + " " + cline.section(' ', 1));
-	else
-		_ch->queueCommand(cmd, cline.section(' ', 1));
+	/* Setup args */
+	QString args = cmdword + " " + cline.section(' ', 1);
+	args = args.stripWhiteSpace();
+	
+	/* Run our command */
+	try {
+		cmd->runCmd(args);
+	}
+	catch (koalamud::exceptions::cmdpermdenied p)
+	{
+		QString out;
+		QTextOStream os(&out);
+		os << "You do not have permission to run this command." << endl;
+		_ch->sendtochar(out);
+	}
+	_ch->sendPrompt();
+
+	/* Cleanup */
+	delete cmd;
 }
 
 /** Build a player Creation parser

@@ -23,6 +23,13 @@ class K_Char : public QObject
 	public:
       K_Char();
       virtual  ~K_Char();
+
+	public:
+		virtual void setName(QString name);
+		virtual QString getName(void) {return _name;}
+
+	protected:
+		QString _name;
 };
 
 #endif  // KOALA_CHAR_HXX

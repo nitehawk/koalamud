@@ -18,6 +18,7 @@
 #include "main.hxx"
 #include "char.hxx"
 #include "event.hxx"
+#include "language.hxx"
 
 namespace koalamud
 {
@@ -150,6 +151,34 @@ void Char::queueCommand(Command *cmd, QString args)
 
 bool Char::sendtochar(QString data)
 {
+	{
+	/* Scan string for language markers - send off to be garbled
+	 * Language markup looks like:  ^&LANG [langid] text GNAL&^
+	 * In the event that GNAL&^ is not found, we will use the end of the string
+	 * as our marking point.  Language markers cannot be be nested.
+	 */
+		int start,end,msgstart,msgend;
+		while ((start = data.find("^&LANG")) >= 0)
+		{
+			msgend = data.find("GNAL&^", start) - 1;
+			end = msgend + strlen("GNAL&^") + 1;
+			msgstart = start + strlen("^&LANG") + 1;
+
+			/* Extract the language ID and move msgstart */
+			/* Language IDs are 5 character strings that are mapped to the language
+			 * objects.  Language names are mapped to language IDs.  These mappings
+			 * are static so that descriptions can include language markers.
+			 */
+			QString langid = data.mid(msgstart, 5);
+			msgstart += 6;
+
+			QString msg = data.mid(msgstart, msgend - msgstart);
+
+			/* Update output string with morphed string */
+			data = data.replace(start, end - start, languageMorph(langid,msg));
+		}
+	}
+
 	if (_desc)
 	{
 		_desc->send(data);
@@ -157,6 +186,28 @@ bool Char::sendtochar(QString data)
 		return true;
 	}
 	return false;
+}
+
+/** Morph a string based on the target language.
+ * This function wraps translating langid into the appropriate language object
+ * and skill rating.
+ * @note This function can also be used to premorph strings before sending to
+ * other players to take into account the players skill in speaking the
+ * language by specifying true to spoken.  This will morph to the players
+ * primary language with a skill rating of the desired language.  Thus when it
+ * goes out, the string will be flavored with the characters primary language
+ * if they don't have the language skill maxed out.
+ */
+QString Char::languageMorph(QString langid, QString msg, bool spoken = false)
+{
+	/* Temporary:  For now assume we have a skill level of 50% in the given
+	 * language - for testing */
+	
+	Language *lang = Language::getLanguage(langid);
+	if (lang)
+		return lang->morphString(msg, 50);
+	else
+		return msg;
 }
 
 /* {{{ cmdexectask implementation */

@@ -70,6 +70,7 @@ class MainServer
 		bool usegui(void) { return _guiactive; }
 		/** Return pointer to status window */
 		KoalaStatus *statwin(void) { return _statwin; }
+		bool isdetached(void) { return _background; }
 		
 	protected: /* Internal utility functions */
 		void parseargs(int argc, char **argv) throw (koalaexception);

@@ -156,7 +156,7 @@ void Listener::newConnection(int socket)
 
 /** Construct a Descriptor object */
 Descriptor::Descriptor(int sock)
-	: Socket(sock), sendcolor(false), inBuffer(4096), outBuffer(4096)
+	: Socket(sock), sendcolor(false), inBuffer(4096), outBuffer(4096) 
 {
 	struct sockaddr_in addr;
 	socklen_t len = sizeof(struct sockaddr_in);
@@ -186,8 +186,54 @@ void Descriptor::dispatchRead(void)
 		delete this;
 		return;
 	}
+}
 
-	readClient();
+/** Dispatch a ParseDescriptor read */
+void ParseDescriptor::dispatchRead(void)
+{
+	Descriptor::dispatchRead();
+	
+	/* Lock and check for an existing input task */
+	inputTaskLock.acquire();
+	if (!inputTaskRunning)
+	{
+		inputTaskRunning = true;
+		srv->executor()->execute(new InputTask(this));
+	}
+	inputTaskLock.release();
+}
+
+/** Run an InputTask */
+void ParseDescriptor::InputTask::run(void)
+{
+	char *input;
+	_desc->inputTaskLock.acquire();
+	input = _desc->inBuffer.getLine();
+	if (input == NULL)
+	{
+		_desc->inputTaskRunning = false;
+		_desc->inputTaskLock.release();
+		return;
+	}
+	_desc->inputTaskLock.release();
+
+	/** Run the attached parser for the line of input */
+	if (_desc->_parse)
+	{
+		_desc->_parse->parseLine(QString(input));
+	}
+	free(input);
+
+	/* Check input buffer for another line of input.  If another line is in the
+	 * buffer, queue another input task. */
+	_desc->inputTaskLock.acquire();
+	if (_desc->inBuffer.canReadLine())
+	{
+		srv->executor()->execute(new InputTask(_desc));
+	} else {
+		_desc->inputTaskRunning = false;
+	}
+	_desc->inputTaskLock.release();
 }
 
 /** Handle write events for descriptors
@@ -213,23 +259,6 @@ void Descriptor::doWrite(void)
 bool Descriptor::isDataPending(void)
 {
 	return !outBuffer.isEmpty();
-}
-
-/** Read data from the socket
- * This version echos all incoming data back out to the network
- */
-void Descriptor::readClient(void)
-{
-	QString out;
-	QTextOStream os(&out);
-	char * input;
-	while ((input = inBuffer.getLine())!= NULL)
-	{
-		os << "ECHO: " << input;
-		free(input);
-	}
-	os << endl;
-	send(out);
 }
 
 /** Send data out to the network
@@ -373,26 +402,8 @@ void Descriptor::send(QString data)
  * @param parser Pointer to parser object to start system with
  */
 ParseDescriptor::ParseDescriptor(int sock, Parser *parser = NULL)
-	: Descriptor(sock), _parse(parser)
+	: Descriptor(sock), _parse(parser), inputTaskRunning(false)
 {
-}
-
-/** Read data from the socket
- * This version passes each line read into the currently connected parser or
- * discards them if not connected.
- */
-void ParseDescriptor::readClient(void)
-{
-	char *input;
-	while ((input = inBuffer.getLine()) != NULL )
-	{
-		if (_parse)
-		{
-			_parse->parseLine(QString(input));
-		} else {
-		}
-		free(input);
-	}
 }
 
 /** Destroy a descriptor */

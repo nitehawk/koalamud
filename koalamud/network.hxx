@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <zthread/FastRecursiveMutex.h>
+#include <zthread/Thread.h>
 
 #include "buffer.hxx"
 
@@ -144,9 +145,6 @@ class Descriptor : public Socket
 		Buffer inBuffer;
 		/** Output buffer */
 		Buffer outBuffer;
-
-	private slots:
-		virtual void readClient(void);
 };
 
 /** Descriptor with hooks to parser
@@ -170,13 +168,32 @@ class ParseDescriptor : public Descriptor
 		void setParser(Parser *newparse, bool del=true);
 		/** Return a pointer to the currently attached parser */
 		Parser *parser(void) { return _parse; }
-
-	private slots:
-		virtual void readClient(void);
+		virtual void dispatchRead(void);
 
 	protected:
 		/** Pointer to the attached parser */
 		Parser *_parse;
+
+	protected: /* Input Task stuff */
+		/** Lock for updating task status */
+		ZThread::FastRecursiveMutex inputTaskLock;
+		/** Status of input handler task */
+		bool inputTaskRunning;
+		/** Input handler Task */
+		class InputTask : public ZThread::Runnable
+		{
+			public:
+				/** Create a command executor task */
+				InputTask(ParseDescriptor *desc) : _desc(desc) {}
+				/** Destroy a command executor task */
+				virtual ~InputTask(void) {}
+				virtual void run(void);
+			protected:
+				/** Pointer to the descriptor we are working with */
+				ParseDescriptor *_desc;
+		};
+		/** Make sure that InputTask can do everything it needs to */
+		friend class InputTask;
 };
 
 }; /* end koalamud namespace */

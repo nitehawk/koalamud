@@ -15,6 +15,7 @@
 #define KOALA_PLAYERCHAR_CXX "%A%"
 
 #include <qregexp.h>
+#include <qsqldatabase.h>
 
 #include <iostream>
 
@@ -23,10 +24,11 @@
 #include "event.hxx"
 #include "playerchar.hxx"
 
+/* {{{ Constructor */
 K_PlayerChar::K_PlayerChar(int socket, QObject *parent = NULL,
 				const char *name = NULL)
   : KoalaDescriptor(socket, parent, name), _state(STATE_GETNAME),
-			_disconnecting(false), cmdtaskrunning(false)
+			_disconnecting(false), _indatabase(false), cmdtaskrunning(false)
 {
     if ( guiactive )
     {
@@ -44,7 +46,9 @@ K_PlayerChar::K_PlayerChar(int socket, QObject *parent = NULL,
 	/* Send welcome message */
 	sendWelcome();
 }
+/* }}} Constructor */
 
+/* {{{ Destructor */
 K_PlayerChar::~K_PlayerChar()
 {
 		/* At some point we will probably want to handle linkless players.  For
@@ -62,7 +66,9 @@ K_PlayerChar::~K_PlayerChar()
 			stat->updateplayercount();
     }
 }
+/* }}} Destructor */
 
+/* {{{ Update gui status */
 void K_PlayerChar::updateguistatus(void)
 {
 	if (guiactive)
@@ -76,10 +82,33 @@ void K_PlayerChar::updateguistatus(void)
 			case STATE_PLAYING:
 				plrstatuslistitem->setText(2, QString("Playing"));
 				break;
+			case STATE_NEWPLAYER:
+				plrstatuslistitem->setText(2, QString("New Player"));
+				break;
+			case STATE_NEWPLAYERCONFIRM:
+				plrstatuslistitem->setText(2, QString("Confirm New Player"));
+				break;
+			case STATE_NEWPASS:
+				plrstatuslistitem->setText(2, QString("Select Password"));
+				break;
+			case STATE_NEWPASSCONFIRM:
+				plrstatuslistitem->setText(2, QString("Confirm Password"));
+				break;
+			case STATE_GETEMAIL:
+				plrstatuslistitem->setText(2, QString("Enter Email"));
+				break;
+			case STATE_EMAILCONFIRM:
+				plrstatuslistitem->setText(2, QString("Confirm Email"));
+				break;
+			case STATE_GETPASS:
+				plrstatuslistitem->setText(2, QString("Get Password"));
+				break;
 		}
 	}
 }
+/* }}} Update gui status */
 
+/* {{{ readclient */
 void K_PlayerChar::readclient(void)
 {
     while ( canReadLine() && (_disconnecting == false))
@@ -116,7 +145,16 @@ void K_PlayerChar::readclient(void)
 			delete this;
 		}
 }
+/* }}} readclient */
 
+/* {{{ setName */
+void K_PlayerChar::setName(QString name)
+{
+	K_Char::setName(name);
+}
+/* }}} setName */
+
+/* {{{ event */
 bool K_PlayerChar::event(QEvent *e)
 {
 	static bool disconeventposted = false;
@@ -140,13 +178,9 @@ bool K_PlayerChar::event(QEvent *e)
 			return false;
 	}
 }
+/* }}} event */
 
-void K_PlayerChar::setName(QString name)
-{
-	/* Fall through to parent implementation */
-	K_Char::setName(name);
-}
-
+/* {{{ runcmd */
 void K_PlayerChar::runcmd(cmdentry_t *cmd, QString word, QString args)
 {
 	if (cmd == NULL)
@@ -157,7 +191,9 @@ void K_PlayerChar::runcmd(cmdentry_t *cmd, QString word, QString args)
 
 	cmd->cmdfunc(this, word, args);
 }
+/* }}} runcmd */
 
+/* {{{ sendWelcome */
 void K_PlayerChar::sendWelcome(void)
 {
 	/* FIXME: This should be spruced up later */
@@ -165,13 +201,166 @@ void K_PlayerChar::sendWelcome(void)
 	os << "Welcome to KoalaMud Gen 2 v0.3.0a" << endl;
 	os << "By what name are you known? ";
 }
+/* }}} sendWelcome */
 
+/* {{{ parseline */
 void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 {
 	switch (_state)
 	{
 		case STATE_GETNAME:
+		{ /* {{{ */
+			if (cmdword.lower() == "new")
+			{
+				QString toch;
+				QTextOStream os(&toch);
+				/* We'll need to make this nicer eventually */
+				os << "Welcome to the Realm!" << endl;
+				os << "Please choose a name for your character: ";
+				sendtochar(toch);
+				_state = STATE_NEWPLAYER;
+			} else {
+				/* Technically we should check the database to make sure this name
+				 * exists.  We'll get to that later */
+				setName(cmdword);
+				QString toch;
+				QTextOStream os(&toch);
+				os << "Please enter your password: ";
+				sendtochar(toch);
+				_state = STATE_GETPASS;
+			}
+		} /* }}} */
+		break;
+		case STATE_NEWPLAYER:
+		{ /* {{{ */
 			setName(cmdword);
+			QString toch;
+			QTextOStream os(&toch);
+			os << "You have chosen the name '" << _name << "' for your character.";
+			os << endl << "Is this what you want? ";
+			sendtochar(toch);
+			_state = STATE_NEWPLAYERCONFIRM;
+		} /* }}} */
+		break;
+		case STATE_NEWPLAYERCONFIRM:
+		{
+			if (cmdword.lower()[0] == 'y')
+			{
+				QString toch;
+				QTextOStream os(&toch);
+				os << "Please select a password for your character." << endl;
+				os << "Note:  The administrators have no way to recover your ";
+				os << "password if you loose it." << endl;
+				os << "Password: ";
+				sendtochar(toch);
+				_state = STATE_NEWPASS;
+			} else {
+				QString toch;
+				QTextOStream os(&toch);
+				os << "By what name are you known? ";
+				sendtochar(toch);
+				_state = STATE_GETNAME;
+			}
+		}
+		break;
+		case STATE_NEWPASS:
+		{
+			_password = cline;
+			QString toch;
+			QTextOStream os(&toch);
+			os << "Confirm password: ";
+			sendtochar(toch);
+			_state = STATE_NEWPASSCONFIRM;
+		} 
+		break;
+		case STATE_NEWPASSCONFIRM:
+		{ /* {{{ Confirm Password */
+			if (_password != cline)
+			{
+				QString toch;
+				QTextOStream os(&toch);
+				os << "We're sorry, but those passwords didn't match,";
+				os << "Please try again." << endl;
+				sendtochar(toch);
+				_state = STATE_NEWPASS;
+			} else {
+				/* Passwords match, request email address */
+				QString toch;
+				QTextOStream os(&toch);
+				os <<
+"Your email address is used only to forward system status updates" << endl <<
+"and to communicate with you in the event that you need your" << endl <<
+"password reset." << endl << 
+"We will never sell your email address or use it to send any" << endl <<
+"Unsolicited emails." << endl <<
+"Please enter your correct email address: ";
+				sendtochar(toch);
+				_state = STATE_GETEMAIL;
+			}
+		} /* }}} */
+		break;
+		case STATE_GETEMAIL:
+		{
+			_email  = cline;
+			QString toch;
+			QTextOStream os(&toch);
+			os << "You entered '" << _email << "' as your email address." << endl;
+			os << "Is this correct? ";
+			sendtochar(toch);
+			_state = STATE_EMAILCONFIRM;
+		}
+		break;
+		case STATE_EMAILCONFIRM:
+		{
+			if (cmdword.lower()[0] == 'y')
+			{
+				QString toch;
+				QTextOStream os(&toch);
+				os <<
+"Thank you for joining KoalaMud.  We hope your stay will be an" << endl <<
+"enjoyable one.  If you have any questions, don't hessitate to ask." << endl;
+				sendtochar(toch);
+				save();
+				_indatabase = true;
+				_state = STATE_PLAYING;
+				/* Playermap is updated when the player goes into STATE_PLAYING */
+				connectedplayermap.insert(_name, this);
+				/* Join gossip channel if it exists */
+				if (channelmap["gossip"] != NULL)
+				{
+					channelmap["gossip"]->joinchannel(this);
+				}
+			} else {
+				QString toch;
+				QTextOStream os(&toch);
+				os <<
+"Your email address is used only to forward system status updates" << endl <<
+"and to communicate with you in the event that you need your" << endl <<
+"password reset." << endl << 
+"We will never sell your email address or use it to send any" << endl <<
+"Unsolicited emails." << endl <<
+"Please enter your correct email address: ";
+				sendtochar(toch);
+				_state = STATE_GETEMAIL;
+			}
+		}
+		break;
+		case STATE_GETPASS:
+			_password = cline;
+			if (!load())
+			{
+				/* Bad password */
+				QString toch;
+				QTextOStream os(&toch);
+				os << "Invalid Password!" << endl;
+				os << "Please enter the name of your character, or 'new' to start ";
+				os << "a new character." << endl;
+				os << "By what name are you known? " << endl;
+				sendtochar(toch);
+				_state = STATE_GETNAME;
+				break;
+			}
+			_indatabase = true;
 			_state = STATE_PLAYING;
 			/* Playermap is updated when the player goes into STATE_PLAYING */
 			connectedplayermap.insert(_name, this);
@@ -196,7 +385,9 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 			break;
 	}
 }
+/* }}} parseline */
 
+/* {{{ channelsendtochar */
 /* Replace template elements with appropriate strings and send on to char */
 void K_PlayerChar::channelsendtochar(K_PlayerChar *from, QString templateall,
 				QString templatesender, QString msg)
@@ -217,8 +408,11 @@ void K_PlayerChar::channelsendtochar(K_PlayerChar *from, QString templateall,
 	} else
 	{
 		QString outmsg;
-		outmsg = templateall.replace(QRegExp("%sender%"),
-					from->getName(this) );
+		if (from != NULL)
+		{
+			outmsg = templateall.replace(QRegExp("%sender%"),
+						from->getName(this) );
+		}
 		outmsg = outmsg.replace(QRegExp("%message%"), msg);
 		QString endline;
 		QTextOStream os(&endline);
@@ -227,6 +421,7 @@ void K_PlayerChar::channelsendtochar(K_PlayerChar *from, QString templateall,
 		sendtochar(endline);
 	}
 }
+/* }}} channelsendtochar */
 
 /* When we start tracking subscribed channels, this will remove chan from the
  * list */
@@ -241,6 +436,89 @@ bool K_PlayerChar::sendtochar(QString text)
 {
 	QTextStream os(this);
 	os << text;
+}
+
+/* {{{ save */
+void K_PlayerChar::save(void)
+{
+	QSqlQuery savequery;
+
+	if (!_indatabase)
+	{ /* {{{ */
+		/* This is the first time the player object is being saved, insert
+		 * everything into the database */
+		QString q;
+		QTextOStream qos(&q);
+		qos << "insert into players (name, pass, email, created, lastlogin)";
+		qos << " values" << endl;
+		qos << "('" << _name << "', MD5('" << _password << "')," << endl;
+		qos << "'" << _email << "', NOW(), NOW());";
+		if (!savequery.exec(q))
+		{
+			cout << "Error saving " << _name << " to the database!" << endl;
+			cout << "Query: " << q << endl;
+		sendtochar("There was a problem recording your deeds, please try again.");
+		}
+		_indatabase = true;
+		/* }}} */
+	} else {
+		/* {{{ */
+		QString q;
+		QStringList setlist;
+		QTextOStream qos(&q);
+		qos << "update players" << endl;
+		if (_password.length() > 4)
+		{
+			QString si;
+			QTextOStream sios(&si);
+			sios << "set pass = MD5('" << _password << "')";
+			setlist += si;
+		}
+		qos << setlist.join(", ");
+		qos << "where name = '" << _name << "';";
+		if (!savequery.exec(q))
+		{
+			cout << "Error saving " << _name << " to the database!" << endl;
+			cout << "Query: " << q << endl;
+		sendtochar("There was a problem recording your deeds, please try again.");
+		}
+		/* }}} */
+	}
+}
+/* }}} save */
+
+/* This should only be called at login */
+bool K_PlayerChar::load(bool checkpass = true)
+{
+	/* At this point, we should have the player name and password in the class.
+	 * We'll do a select limiting on both to get the record.  If the query
+	 * fails, we return false to signify an invalid login.  checkpass provides a
+	 * means for bypassing the password check if an imm needs to force a reload
+	 * from the database for some reason */
+	QString q;
+	QTextOStream qos(&q);
+
+	/* Note, we individually list fields so that we know the proper order */
+	qos << "select name, email" << endl;
+	qos << "from players" << endl;
+	qos << "where name = '" << _name << "'" << endl;
+	if (checkpass)
+	{
+		qos << "and pass = MD5('" << _password << "')";
+	}
+	qos << ";";
+
+	QSqlQuery loadq(q);
+	if (loadq.isActive())
+	{
+		/* There will only be one record, the index on name ensures that */
+		loadq.next();
+		_email = loadq.value(1).toString();
+		_name = loadq.value(0).toString(); // So we get the case correct
+		return true;  // let the caller update lastlogin if needed
+	} else {
+		return false;
+	}
 }
 
 /* {{{ Input task implementation */

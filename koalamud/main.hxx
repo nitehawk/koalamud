@@ -16,6 +16,7 @@
 
 #include <zthread/PoolExecutor.h>
 #include "koalastatus.h"
+#include "memory.hxx"
 
 #define TPMIN	1
 #define TPMAX 2
@@ -24,10 +25,12 @@
 bool guiactive;
 KoalaStatus *stat;
 ZThread::Executor *executor;
+koalamud::PoolAllocator poolalloc;
 #else
 extern bool guiactive;
 extern KoalaStatus *stat;
 extern ZThread::Executor *executor;
+extern koalamud::PoolAllocator poolalloc;
 #endif // KOALA_MAIN_CXX
 
 

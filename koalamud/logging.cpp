@@ -149,6 +149,20 @@ class Log : public Command /* {{{ */
 			return subcmd->run(word, args.section(' ', 1));
 		}
 
+		/** Restricted access command. */
+		virtual bool isRestricted(void) const { return true;}
+
+		/** Command Groups */
+		virtual QStringList getCmdGroups(void) const
+		{
+			QStringList gl;
+			gl << "Implementor" << "Coder" << "Builder" << "Immortal";
+			return gl;
+		}
+
+		/** Get command name for individual granting */
+		virtual QString getCmdName(void) const { return QString("logging"); }
+
 	public:
 	/** Set command class */
 	class Set : public Command /* {{{ */

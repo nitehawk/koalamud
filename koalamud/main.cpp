@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include "main.hxx"
+#include "logging.hxx"
 #include "exception.hxx"
 #include "database.hxx"
 #include "network.hxx"
@@ -42,8 +43,7 @@ MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
 	_executor = new ZThread::PoolExecutor<ZThread::FastMutex>(threadpoolmin, threadpoolmax);
 
 	/* Call to process arguments here */
-	if (!parseargs(argc, argv))
-		return;
+	parseargs(argc, argv);
 
 	/* Daemonizing code here */
 	if (_background)
@@ -76,6 +76,8 @@ void MainServer::run(void)
 	/* This will be replaced with exception handling */
 	if (!_kmdb || !_kmdb->isonline())
 		return;
+
+	Logger::msg("Starting listeners", Logger::LOG_NOTICE);
 
 	/* Start a listener */
 	/* FIXME:  This information should be retrieved from the database */

@@ -43,10 +43,8 @@ class PlayerChar : public Char
 	public:
 		PlayerChar(QString name, ParseDescriptor *desc=NULL);
 		virtual ~PlayerChar(void);
-		/** Load player from database */
-		virtual bool load(void) {return false;}
-		/** Save player to database */
-		virtual bool save(void) {return false;}
+		virtual bool load(void);
+		virtual bool save(void);
 
 	public:
 		virtual void setDesc(ParseDescriptor *desc);

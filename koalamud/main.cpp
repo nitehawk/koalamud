@@ -28,6 +28,7 @@
 #include "network.hxx"
 #include "koalastatus.h"
 #include "cmdtree.hxx"
+#include "room.hxx" // Probably temporary
 
 namespace koalamud {
 
@@ -78,6 +79,8 @@ void MainServer::run(void)
 	/* This will be replaced with exception handling */
 	if (!_kmdb || !_kmdb->isonline())
 		return;
+
+	new Room(0,0,0,0);
 
 	Logger::msg("Starting listeners", Logger::LOG_NOTICE);
 

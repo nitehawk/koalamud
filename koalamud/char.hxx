@@ -45,19 +45,6 @@ class Char : public QObject
 {
 	Q_OBJECT
 
-	protected: /* Internal typedefs */
-		/** Command queue object */
-		typedef struct {
-			Command *cmd; /**< Pointer to the command */
-			QString args; /**< Command arguments */
-			/** Operator new overload */
-			void * operator new(size_t obj_size)
-				{ return koalamud::PoolAllocator::alloc(obj_size); }
-			/** Operator delete overload */
-			void operator delete(void *ptr)
-				{ koalamud::PoolAllocator::free(ptr); }
-		} cmdqueueitem;
-
 	public: // Constructors/destructors
 		Char(QString name = NULL, ParseDescriptor *desc=NULL);
 		/** Empty virtual destructor to ensure cleanup happens correctly */

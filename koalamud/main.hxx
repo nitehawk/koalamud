@@ -14,14 +14,20 @@
 #ifndef KOALA_MAIN_HXX
 #define KOALA_MAIN_HXX "%A%"
 
+#include <zthread/PoolExecutor.h>
 #include "koalastatus.h"
+
+#define TPMIN	1
+#define TPMAX 2
 
 #ifdef KOALA_MAIN_CXX
 bool guiactive;
 KoalaStatus *stat;
+ZThread::Executor *executor;
 #else
 extern bool guiactive;
 extern KoalaStatus *stat;
+extern ZThread::Executor *executor;
 #endif // KOALA_MAIN_CXX
 
 

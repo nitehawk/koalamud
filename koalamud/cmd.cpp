@@ -20,6 +20,7 @@
 #include "cmd.hxx"
 #include "cmdtree.hxx"
 #include "playerchar.hxx"
+#include "room.hxx"
 
 /* New Command Stuff */
 namespace koalamud {
@@ -318,6 +319,26 @@ class Grant : public Command
 		virtual QString getCmdName(void) const { return QString("grant"); }
 };
 
+/** Look command class */
+class Look : public Command
+{
+	public:
+		/** Pass through constructor */
+		Look(Char *ch) : Command(ch) {}
+		/** Run Look command */
+		virtual unsigned int run(QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
+
+			os << _ch->getRoom()->displayRoom(_ch);
+			_ch->sendtochar(str);
+
+			return 0;
+		}
+
+};
+
 	}; /* end namespace command */
 
 /** Command Factory for cmd.cpp */
@@ -333,6 +354,7 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 			maincmdtree->addcmd("who", this, 3);
 			maincmdtree->addcmd("shutdown", this, 4);
 			maincmdtree->addcmd("grant", this, 5);
+			maincmdtree->addcmd("look", this, 6);
 		}
 
 		/** Handle command object creations */
@@ -350,6 +372,8 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 					return new koalamud::commands::Shutdown(ch);
 				case 5:
 					return new koalamud::commands::Grant(ch);
+				case 6:
+					return new koalamud::commands::Look(ch);
 			}
 			return NULL;
 		}

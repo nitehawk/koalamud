@@ -207,8 +207,7 @@ void Editor::parseLine(QString line)
 				curstate = STATE_MENU;
 				break;
 			}
-			/* Append a line to the end of the edit buffer - remove the endl */
-			line.truncate(line.length() - el.length());
+			/* Append a line to the end of the edit buffer */
 			lines += line;
 			break;
 		case STATE_INSERT:
@@ -217,9 +216,7 @@ void Editor::parseLine(QString line)
 				curstate = STATE_MENU;
 				break;
 			}
-			/* Insert line before insertpos - increment insertpos 
-			 * - remove the endl */
-			line.truncate(line.length() - el.length());
+			/* Insert line before insertpos - increment insertpos */
 			lines.insert(lines.at(insertpos++), line);
 			break;
 	}

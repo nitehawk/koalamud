@@ -30,6 +30,9 @@ class forkerror : public daemonize {};
 class pgrperror : public daemonize {};
 /** fork successful - throw to cause parent PID to exit */
 class forkparent : public daemonize {};
+
+/** Permission on command denied */
+class cmdpermdenied : public koalaexception {};
 	
 	}; /* End exceptions namespace */
 }; /* End koalamud namespace */

@@ -127,7 +127,7 @@ class Shutdown : public Command
 			os << "KoalaMud Server shutting down." << endl;
 			_ch->sendtochar(str);
 
-			srv->shutdown(0);
+			srv->Shutdown();
 			return 0;
 		}
 

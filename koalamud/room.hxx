@@ -43,10 +43,8 @@ class RoomExit
 	public:
 		/** Flags for this exit */
 		typedef enum {
-			/** No flags - direct link */
-			FLAG_NONE = 0,
 			/** Exit is a door */
-			FLAG_DOOR,
+			FLAG_DOOR = 0,
 			/** Door is lockable */
 			FLAG_LOCKABLE,
 			/** Door is locked */
@@ -78,7 +76,8 @@ class RoomExit
 			: _name(name), dest(destroom), flags(exitflags), keynum(keyobj)
 		{}
 		static void makeExits(int, int, int, int,
-													int, int, int, int, QString, int, QString, QString);
+													int, int, int, int,
+													QString, int, unsigned int, QString);
 		static void initializeMaps(void);
 		
 	public: /* Operators */
@@ -123,14 +122,10 @@ class Room
 		 * The list of all flags possible to be set on a room
 		 * This should match the order used in the database */
 		typedef enum {
-				/** No flags set */
-				FLAG_NOFLAGS = 0,
 				/** Room has a level restriction, can be minimum or maximum or both.*/
-				FLAG_LEVELRESTRICT,
+				FLAG_LEVELRESTRICT = 0,
 				/** Room provides fast regen. */
 				FLAG_REGEN,
-				/** Room is dark - outdoor rooms are dark at night. */
-				FLAG_DARK,
 				/** Room is a deathtrap. */
 				FLAG_DEATHTRAP,
 				/** No NPC's allowed in room. */
@@ -193,7 +188,7 @@ class Room
 		Room(int zone, int lat, int longi, int ele);
 		Room(QString, QString, QString, QString, QString,
 						int, int, int, int,
-						flags_t rflags=FLAG_NOFLAGS, type_t rtype=TYPE_INDOORS,
+						unsigned int rflags=0, type_t rtype=TYPE_INDOORS,
 						unsigned int plrlimit=0);
 		virtual ~Room();
 
@@ -270,6 +265,7 @@ class Room
 		/** List of chars in room */
 		QPtrList<Char> charsinroom;
 };
+
 
 #ifdef KOALA_ROOM_CXX
 /** Map room references to Room pointers */

@@ -17,6 +17,7 @@
 #include <qregexp.h>
 
 #include "room.hxx"
+#include "roomedit.hxx"
 #include "logging.hxx"
 #include "cmdtree.hxx"
 
@@ -67,7 +68,7 @@ Room::Room(int zone, int lat, int longi, int ele)
 Room::Room(QString title, QString desc, QString smell, QString sound,
 						QString soundfile,
 						int zone, int lat, int longi, int elev,
-						flags_t flags=FLAG_NOFLAGS, type_t rtype=TYPE_INDOORS,
+						unsigned int flags=0, type_t rtype=TYPE_INDOORS,
 						unsigned int plrlimit=0)
 	: _title(title), _description(desc), _smell(smell), _sound(sound),
 		_soundfile(soundfile), _virtual(true),
@@ -101,7 +102,7 @@ bool Room::load()
 	QTextOStream qos(&query);
 	QSqlQuery q;
 
-	qos << "select title, description, flags, type, plrlimit" << endl
+	qos << "select title, description, flags+0, type+0, plrlimit" << endl
 			<< "from room where zone = " << _zone << endl
 			<< "and latitude = " << _lat << " and longitude = " << _long << endl
 			<< "and elevation = " << _elev << ";";
@@ -111,6 +112,8 @@ bool Room::load()
 		_title = q.value(0).toString();
 		_description = q.value(1).toString();
 		_plrlimit = q.value(4).toUInt();
+		_flags = q.value(2).toUInt();
+		_rtype = (type_t)q.value(3).toInt();
 		return true;
 		/* Flags and type need to be interpreted */
 	} else {
@@ -287,8 +290,27 @@ QString Room::displayRoom(Char *ch, bool brief=false)
 		} else {
 			out << " |B-|x";
 		}
-		out << endl;
+		out << " ";
 	}
+
+	/* If the character is an immortal, we'll show room flags as well */
+	if (ch->isImmortal())
+	{
+		int count = 0;
+		for (unsigned int i = FLAG_LEVELRESTRICT; i < FLAG_ENDLIST; ++i)
+		{
+			if (_flags[i])
+			{
+				if (count)
+				{
+					out << ", ";
+				}
+				out << Roomflagtostringmap[(flags_t) i];
+				++count;
+			}
+		}
+	}
+	out << endl;
 	
 	if (!brief)
 	{
@@ -470,7 +492,7 @@ void Room::loadWorldRooms(void)
 	/* Load exits */
 	QTextOStream qos(&query);
 	qos << "select r1zone, r1lat, r1long, r1elev," << endl
-			<< "r2zone, r2lat, r2long, r2elev, name, keyobj, flags," << endl
+			<< "r2zone, r2lat, r2long, r2elev, name, keyobj, flags+0," << endl
 			<< "direction from roomexits;";
 	q.exec(query);
 	while (q.next())
@@ -480,14 +502,14 @@ void Room::loadWorldRooms(void)
 						q.value(4).toInt(), q.value(5).toInt(),
 						q.value(6).toInt(), q.value(7).toInt(),
 						q.value(8).toString(), q.value(9).toInt(),
-						q.value(10).toString(), q.value(11).toString());
+						q.value(10).toUInt(), q.value(11).toString());
 	}
 }
 
 /** Create exits and attach them to the appropriate rooms */
 void RoomExit::makeExits(int r1zone, int r1lat, int r1long, int r1elev,
 												 int r2zone, int r2lat, int r2long, int r2elev,
-												 QString name, int keyobj, QString flagstring,
+												 QString name, int keyobj, unsigned int flagval,
 												 QString dir)
 {
 	Room *r1 = Room::findRoom(r1zone, r1lat, r1long, r1elev);
@@ -499,15 +521,10 @@ void RoomExit::makeExits(int r1zone, int r1lat, int r1long, int r1elev,
 		return;
 	}
 	
-	QStringList flaglist = QStringList::split(",", flagstring);
-	int flagval = 0;
-	int numflags = (int)flaglist.count();
 	bool twoway = false;
-	for (int i = 0; i < numflags; i++)
+	if (flagval & (1 << FLAG_TWOWAY))
 	{
-		flagval += 1 << (RoomExitstringtoflagmap[flaglist[i]] );
-		if (RoomExitstringtoflagmap[flaglist[i]] == RoomExit::FLAG_TWOWAY)
-			twoway = true;
+		twoway = true;
 	}
 
 	Room::directions direction = Roomstringtodirmap[dir.upper()];
@@ -549,9 +566,119 @@ void RoomExit::initializeMaps(void)
 	RoomExitflagtostringmap[FLAG_TWOWAY] = "TWOWAY";
 } /* }}} */
 
+/** Setup a room OLC */
+RoomOLC::RoomOLC(Char *ch, ParseDescriptor *pd, Parser *oldParser,
+								int zone, int lat, int longi, int elev)
+	: olc(ch, pd, oldParser), ezone(zone), elat(lat), elong(longi), eelev(elev)
+{
+	/* Add fields */
+	addField(QString("Zone Number"), FIELD_INTEGER, &ezone, false);
+	addField(QString("Latitude"), FIELD_INTEGER, &elat, false);
+	addField(QString("Longitude"), FIELD_INTEGER, &elong, false);
+	addField(QString("Elevation"), FIELD_INTEGER, &eelev, false);
+	addField(QString("Room Title"), FIELD_STRING, &title, true, 50);
+	addField(QString("Room Description"), FIELD_MULTILINE, &description, true);
+	addField(QString("Player Limit"), FIELD_INTEGER, &plrlimit, true, 1000, 0);
+	addField(QString("Light Level"), FIELD_INTEGER, &lightlev, true, 100, 0);
+
+	/* Room Flags */
+	field_t *field = addField(QString("Flags"), FIELD_SET, &flags, true);
+	addFlag(field, Room::FLAG_LEVELRESTRICT, QString("Level Restrict"));
+	addFlag(field, Room::FLAG_REGEN, QString("Regen"));
+	addFlag(field, Room::FLAG_DEATHTRAP, QString("Deathtrap"));
+	addFlag(field, Room::FLAG_NONPC, QString("No Mob"));
+	addFlag(field, Room::FLAG_SAFE, QString("Safe"));
+	addFlag(field, Room::FLAG_SAVESPOT, QString("Save Spot"));
+	addFlag(field, Room::FLAG_RECALLSPOT, QString("Recall Spot"));
+	addFlag(field, Room::FLAG_NOTRACK, QString("!Track"));
+	addFlag(field, Room::FLAG_NOMAGIC, QString("!Magic"));
+	addFlag(field, Room::FLAG_NOTELEPORT, QString("!Teleport"));
+	addFlag(field, Room::FLAG_DIZZY, QString("Dizzy"));
+
+	/* Room Types */
+	field = addField(QString("Room Type"), FIELD_ENUM, &type, true);
+	addFlag(field, Room::TYPE_INDOORS, QString("Indoors"));
+	addFlag(field, Room::TYPE_COVERED, QString("Covered"));
+	addFlag(field, Room::TYPE_FIELD, QString("Field"));
+	addFlag(field, Room::TYPE_CITY, QString("City"));
+	addFlag(field, Room::TYPE_FARM, QString("Farm"));
+	addFlag(field, Room::TYPE_FOREST, QString("Forest"));
+	/* Do we need these types? */
+	addFlag(field, Room::TYPE_HILL, QString("Hill"));
+	/* Do we need these types? */
+	addFlag(field, Room::TYPE_MOUNTAIN, QString("Mountain"));
+	addFlag(field, Room::TYPE_WATER, QString("Water Surface"));
+	addFlag(field, Room::TYPE_UNDERWATER, QString("Underwater"));
+	addFlag(field, Room::TYPE_FLYING, QString("Flying"));
+
+	if (!load())
+	{
+		title = "New Room";
+		flags = (1<<Room::FLAG_NOTELEPORT);
+	}
+
+	sendMenu();
+}
+
+/** Save an OLC room and reload it in the world. */
+void RoomOLC::save(void)
+{
+	QString query;
+	QTextOStream qos(&query);
+	QSqlQuery q;
+
+	qos << "replace into room (zone, latitude, longitude, elevation, "
+			<< "title, flags, type, plrlimit, description, lightlev)" << endl
+			<< "values" << endl
+			<< "(" << ezone << ", " << elat << ", " << elong << ", " << eelev
+			<< ", '" << Logger::escapeString(title) << "'," << endl
+			<< flags << ", " << type << ", " << plrlimit << ", " << endl
+			<< "'" << Logger::escapeString(description) << "'," << endl
+			<< lightlev << ");";
+	q.exec(query);
+
+	/* Get a pointer to the specified room and reload it */
+	Room *thisroom = Room::findRoom(ezone, elat, elong, eelev);
+
+	if (thisroom)
+	{
+		thisroom->load();
+	} else {
+		new Room(ezone, elat, elong, eelev);
+	}
+}
+
+/** Load a room from the database for OLC */
+bool RoomOLC::load(void)
+{
+	QString query;
+	QTextOStream qos(&query);
+	QSqlQuery q;
+
+	qos << "select title, flags+0, type+0, plrlimit, lightlev, description"
+			<< endl << "from room where" << endl
+			<< "zone=" << ezone << " and latitude=" << elat << " and "
+			<< "longitude=" << elong << " and elevation=" << eelev << ";";
+	if (q.exec(query) && q.numRowsAffected())
+	{
+		q.next();
+		title = q.value(0).toString();
+		flags = q.value(1).toInt();
+		type = q.value(2).toInt();
+		plrlimit = q.value(3).toInt();
+		lightlev = q.value(4).toInt();
+		description = q.value(5).toString();
+		return true;
+	} else {
+		cout << "Failed Query: " << query << endl;
+	}
+	return false;
+}
+
 namespace commands
 {
 
+/* {{{ Move commands */
 /** Move command class */
 class Move : public Command
 {
@@ -792,6 +919,33 @@ class Down : public Move
 			return 0;
 		}
 };
+/* }}} */
+
+/** RoomEdit command class */
+class RoomEdit : public Move
+{
+	public:
+		/** Pass through constructor */
+		RoomEdit(Char *ch) : Move(ch) {}
+		/** Run RoomEdit command */
+		virtual unsigned int run(QString args)
+		{
+			QString loc = args.replace(QRegExp("("), " ");
+			loc = loc.replace(QRegExp(")"), " ");
+			loc = loc.replace(QRegExp(","), " ");
+
+			int zone,lat,longi,elev;
+			zone = loc.section(' ', 0,0).toInt();
+			lat = loc.section(' ', 1,1).toInt();
+			longi = loc.section(' ', 2,2).toInt();
+			elev = loc.section(' ', 3,3).toInt();
+			Parser *_oldparser = _ch->getDesc()->parser();
+			_ch->getDesc()->setParser(
+							new RoomOLC(_ch, _ch->getDesc(), _oldparser,
+													zone, lat, longi, elev), false);
+			return 0;
+		}
+};
 
 }; /* end commands namespace */
 
@@ -823,6 +977,7 @@ class Room_CPP_CommandFactory : public CommandFactory
 			maincmdtree->addcmd("u", this, 10);
 			maincmdtree->addcmd("down", this, 11);
 			maincmdtree->addcmd("d", this, 11);
+			olccmdtree->addcmd("room", this, 12);
 		}
 
 		/** Handle command object creations */
@@ -852,6 +1007,8 @@ class Room_CPP_CommandFactory : public CommandFactory
 					return new koalamud::commands::Up(ch);
 				case 11:
 					return new koalamud::commands::Down(ch);
+				case 12:
+					return new koalamud::commands::RoomEdit(ch);
 			}
 			return NULL;
 		}

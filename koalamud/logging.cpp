@@ -109,7 +109,7 @@ class Log : public Command /* {{{ */
 {
 	public:
 		/** Pass through constructor */
-		Log(K_PlayerChar *ch) : Command(ch) {}
+		Log(Char *ch) : Command(ch) {}
 		/** Run Log command
 		 * This is actually a bunch of subcommands all together.  We parse out
 		 * @a args to determine which subcommand we are executing.  To prevent
@@ -117,7 +117,7 @@ class Log : public Command /* {{{ */
 		 * with all of the subcommands entered into it.  Then we simply need to
 		 * extract the subcommand word from args and call back into the command
 		 * tree with our new command and args. */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			koalamud::Command *subcmd = NULL;
 
@@ -146,7 +146,7 @@ class Log : public Command /* {{{ */
 			}
 
 			/* Run the subcommand */
-			return subcmd->run(word, args.section(' ', 1));
+			return subcmd->run(args.section(' ', 1));
 		}
 
 		/** Restricted access command. */
@@ -169,10 +169,10 @@ class Log : public Command /* {{{ */
 	{
 		public:
 			/** Pass through constructor */
-			Set(K_PlayerChar *ch) : Command(ch) {}
+			Set(Char *ch) : Command(ch) {}
 			/** Run Set command
 			 * Set minimum logging level to the value in args. */
-			virtual unsigned int run(QString cmd, QString args)
+			virtual unsigned int run(QString args)
 			{
 				QString newlevel;
 				
@@ -245,14 +245,14 @@ class Log : public Command /* {{{ */
 	{
 		public:
 			/** Pass through constructor */
-			Start(K_PlayerChar *ch) : Command(ch) {}
+			Start(Char *ch) : Command(ch) {}
 			/** Run Start command
 			 * Start monitoring a specific logging level
 			 * 
 			 * @todo We should probably mark in the player class somehow that we are
 			 * monitoring that log level so that we can display monitored log levels
 			 */
-			virtual unsigned int run(QString cmd, QString args)
+			virtual unsigned int run(QString args)
 			{
 				QString newlevel;
 				
@@ -366,10 +366,10 @@ class Log : public Command /* {{{ */
 	{
 		public:
 			/** Pass through constructor */
-			Stop(K_PlayerChar *ch) : Command(ch) {}
+			Stop(Char *ch) : Command(ch) {}
 			/** Run Stop command
 			 * Stop monitoring a specific log level */
-			virtual unsigned int run(QString cmd, QString args)
+			virtual unsigned int run(QString args)
 			{
 				QString newlevel;
 				
@@ -491,7 +491,7 @@ class Logging_CPP_CommandFactory : public CommandFactory
 		}
 
 		/** Handle command object creations */
-		virtual Command *create(unsigned int id, K_PlayerChar *ch)
+		virtual Command *create(unsigned int id, Char *ch)
 		{
 			switch (id)
 			{

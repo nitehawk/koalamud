@@ -30,9 +30,9 @@ class Help : public Command
 {
 	public:
 		/** Pass through constructor */
-		Help(K_PlayerChar *ch) : Command(ch) {}
+		Help(Char *ch) : Command(ch) {}
 		/** Run help command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QString str;
 			QTextOStream os(&str);
@@ -178,7 +178,7 @@ class Help_CPP_CommandFactory : public CommandFactory
 		}
 
 		/** Handle command object creations */
-		virtual Command *create(unsigned int id, K_PlayerChar *ch)
+		virtual Command *create(unsigned int id, Char *ch)
 		{
 			switch (id)
 			{

@@ -16,6 +16,7 @@ SOURCES += main.cpp \
            char.cpp \
            playerchar.cpp \
 					 cmd.cpp \
+					 database.cpp \
 					 comm.cpp
 HEADERS += main.hxx \
            koalastatus.h \
@@ -24,5 +25,6 @@ HEADERS += main.hxx \
            playerchar.hxx \
 					 cmd.hxx \
 					 comm.hxx \
+					 database.hxx \
 					 event.hxx
 FORMS += newnetworkportdlg.ui 

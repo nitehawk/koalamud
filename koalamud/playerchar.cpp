@@ -32,7 +32,7 @@ namespace koalamud {
 
 /** Build Player character object, including loading from the database */
 PlayerChar::PlayerChar(QString name, ParseDescriptor *desc = NULL)
-	: Char(name, NULL)
+	: Char(name, NULL), dbid(0)
 {
 
 	if (desc)
@@ -74,6 +74,8 @@ PlayerChar::~PlayerChar(void)
 	connectedplayerlist.removeRef(this);
 	connectedplayermap.remove(_name);
 
+	save();
+
 	/* cleanup gui */
 	if (srv->usegui())
 	{
@@ -109,16 +111,106 @@ void PlayerChar::setDesc(ParseDescriptor *desc)
 /** Load player from database */
 bool PlayerChar::load(void)
 {
+	QSqlQuery q;
+	int inzone, inlat, inlong, inelev;
+
+	{
+		QString query;
+		QTextOStream qos(&query);
+
+		qos << "select playerid, name, lastname, inroomzone, inroomlat, "
+				<< "inroomlong, inroomelev from players" << endl
+				<< "where name = '" << _name << "';";
+		if (q.exec(query) && q.next())
+		{
+			dbid = q.value(0).toInt();
+			_name = q.value(1).toString();
+			_lname = q.value(2).toString();
+			inzone = q.value(3).toInt();
+			inlat = q.value(4).toInt();
+			inlong = q.value(5).toInt();
+			inelev = q.value(6).toInt();
+		} else {
+			cerr << "Failed query: " << query << endl;
+			inzone = inlat = inlong = inelev = 0;
+		}
+	}
+
+	/* Load skills */
+	if (dbid != 0)
+	{
+		QString query;
+		QTextOStream qos(&query);
+
+		qos << "select skid, learned" << endl
+				<< "from skilllevels" << endl
+				<< "where pid = " << dbid << ";";
+		if (q.exec(query))
+		{
+			while(q.next())
+			{
+				setSkillLevel(q.value(0).toString(), q.value(1).toInt());
+			}
+		} else {
+			cerr << "Failed query: " << query << endl;
+		}
+	}
+
 	/* turn on color */
 	_desc->setColor(true);
-	_inroom = Room::findRoom(0,0,0,0);
-	return false;
+	_inroom = Room::findRoom(inzone, inlat, inlong, inelev);
+	return true;
 }
 
 /** Save player to database */
 bool PlayerChar::save(void)
 {
-	return false;
+	if (dbid == 0)
+		return false;
+
+	QSqlQuery q;
+	{
+		/* Save main player record */
+		QString query;
+		QTextOStream qos(&query);
+
+		qos << "update players" << endl
+				<< "set lastlogin = NOW()," << endl
+				<< "inroomzone = " << _inroom->getZone() << "," << endl
+				<< "inroomlat = " << _inroom->getLat() << "," << endl
+				<< "inroomlong = " << _inroom->getLong() << "," << endl
+				<< "inroomelev = " << _inroom->getElev() << endl
+				<< "where playerid = " << dbid << ";";
+
+		if (!q.exec(query))
+			cerr << "Failed query: " << query << endl;
+	}
+
+	{
+		/* Save skill levels */
+		QString query;
+		QTextOStream qos(&query);
+
+		qos << "replace into skilllevels (pid, skid, learned) values";
+		QDictIterator<SkillRecord> skrec(skills);
+		bool first=true;
+		for (; *skrec; ++skrec)
+		{
+			if (!first)
+			{
+				qos << ",";
+			} else {
+				first = false;
+			}
+			qos << endl << "(" << dbid << ", '" << (*skrec)->getId() << "',"
+					<< (*skrec)->getKnow() << ")";
+		}
+		qos << ";";
+
+		if (!q.exec(query))
+			cerr << "Failed query: " << query << endl;
+	}
+	return true;
 }
 
 }; /* end koalamud namespace */

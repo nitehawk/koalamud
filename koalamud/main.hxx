@@ -19,6 +19,7 @@
 #include "koalastatus.h"
 #include "memory.hxx"
 #include "database.hxx"
+#include "exception.hxx"
 
 namespace koalamud {
 
@@ -53,7 +54,7 @@ class MainServer
 		QString _profile;
 
 	public: /* Base system execution functions */
-		MainServer(int argc, char **argv);
+		MainServer(int argc, char **argv) throw(koalaexception);
 		~MainServer(void);
 
 		void run(void);
@@ -71,8 +72,8 @@ class MainServer
 		KoalaStatus *statwin(void) { return _statwin; }
 		
 	protected: /* Internal utility functions */
-		bool parseargs(int argc, char **argv);
-		void daemonize(void);
+		void parseargs(int argc, char **argv) throw (koalaexception);
+		void daemonize(void) throw (koalamud::exceptions::daemonize);
 
 	public: /* public utility functions */
 		QString versionstring(void);

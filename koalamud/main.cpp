@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include "main.hxx"
+#include "exception.hxx"
 #include "database.hxx"
 #include "network.hxx"
 #include "koalastatus.h"
@@ -33,10 +34,13 @@ namespace koalamud {
  * Here we initialize and prepare the various subsystems and load all of the
  * server configuration information from the database.
  */
-MainServer::MainServer( int argc, char **argv )
+MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
 	: _executor(NULL), _guiactive(true), _background(false),
 		_profile("default")
 {
+	/* Initialize our task pool executor */
+	_executor = new ZThread::PoolExecutor<ZThread::FastMutex>(threadpoolmin, threadpoolmax);
+
 	/* Call to process arguments here */
 	if (!parseargs(argc, argv))
 		return;
@@ -64,13 +68,12 @@ MainServer::MainServer( int argc, char **argv )
 		return;
 	}
 
-	/* Initialize our task pool executor */
-	_executor = new ZThread::PoolExecutor<false>(threadpoolmin, threadpoolmax);
 }
 
 /** Start everything running */
 void MainServer::run(void)
 {
+	/* This will be replaced with exception handling */
 	if (!_kmdb || !_kmdb->isonline())
 		return;
 
@@ -92,7 +95,6 @@ MainServer::~MainServer(void)
 {
 	if (_executor) {
 		_executor->cancel();
-		_executor->join();
 	}
 
 	delete _kmdb;
@@ -100,13 +102,13 @@ MainServer::~MainServer(void)
 }
 
 /** Parse command line arguments */
-bool MainServer::parseargs(int argc, char **argv)
+void MainServer::parseargs(int argc, char **argv) throw (koalaexception)
 {
 	char opt = EOF; // Current option
 
 	opterr = 0;
 
-	const char optlist[] = "hfbgGp:";
+	const char optlist[] = "hfbgGr:p:u:s:d:";
 
 	while ((opt = getopt(argc, argv, optlist)) != -1)
 	{
@@ -124,19 +126,28 @@ bool MainServer::parseargs(int argc, char **argv)
 			case 'G':
 				_guiactive = true;
 				break;
-			case 'p':
+			case 'r':
 				_profile = optarg;
+				break;
+			case 'u': /* dbuser */
+				break;
+			case 'p': /* dbpass */
+				break;
+			case 's': /* dbserver */
+				break;
+			case 'd': /* dbname */
 				break;
 			case ':':
 				cout << "Missing argument to " << argv[optind] << endl;
-			default:
-			case '?':
+			case 'h':
 				cout << usage();
-				return false;
+				throw koalaexception();  // we will probably want to make this more specific later
+			default:
+				/* We don't know this argument, but it may be because it is an X
+				 * argument and will be handled by QApplication later */
+				break;
 		}
 	}
-
-	return true;
 }
 
 /** Return current version string */
@@ -163,7 +174,7 @@ QString MainServer::usage(void)
 }
 
 /** Drop server into background for execution */
-void MainServer::daemonize(void)
+void MainServer::daemonize(void) throw (koalamud::exceptions::daemonize)
 {
 	int status = -1;
 
@@ -173,11 +184,11 @@ void MainServer::daemonize(void)
 	{
 		case -1:
 			perror("daemonize()::fork() - 1");
-			exit(errno);
+			throw koalamud::exceptions::forkerror();
 		case 0: // child
 			break;
 		default: // parent - exit
-			exit(0);
+			throw koalamud::exceptions::forkparent();
 	}
 
 	/* Switch process groups to release our parent */
@@ -185,7 +196,7 @@ void MainServer::daemonize(void)
 	if (status == -1)
 	{
 		perror("daemonize()::setsid()");
-		exit(errno);
+		throw koalamud::exceptions::pgrperror();
 	}
 
 	/* close handles */
@@ -202,11 +213,24 @@ void MainServer::daemonize(void)
  */
 int main( int argc, char **argv )
 {
-	srv = new koalamud::MainServer(argc,argv);
+	try {
+		srv = new koalamud::MainServer(argc,argv);
 
-	srv->run();
+		srv->run();
 
-	delete srv;
+		delete srv;
+	}
+	catch (koalamud::exceptions::forkparent &p) {
+		cout << "Successfully launched server into background" << endl;
+		delete srv;
+	}
+	catch (koalamud::exceptions::daemonize &d) {
+		cerr << "Problem backgrounding server!" << endl;
+	}
+	catch (...) {
+		cerr << "Undefined exception, shutting down" << endl;
+		delete srv;
+	}
 
 	return 0;
 }

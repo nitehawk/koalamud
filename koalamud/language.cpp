@@ -300,8 +300,8 @@ class Language_CPP_CommandFactory : public CommandFactory
 		Language_CPP_CommandFactory(void)
 			: CommandFactory()
 		{
-			maincmdtree->addcmd("langedit", this, 1);
-			maincmdtree->addcmd("langlist", this, 2);
+			olccmdtree->addcmd("language", this, 1);
+			immcmdtree->addcmd("langlist", this, 2);
 		}
 
 		/** Handle command object creations */

@@ -404,13 +404,13 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 		Cmd_CPP_CommandFactory(void)
 			: CommandFactory()
 		{
-			maincmdtree->addcmd("memstat", this, 1);
+			immcmdtree->addcmd("memstat", this, 1);
 			maincmdtree->addcmd("quit", this, 2);
 			maincmdtree->addcmd("who", this, 3);
-			maincmdtree->addcmd("shutdown", this, 4);
-			maincmdtree->addcmd("grant", this, 5);
+			immcmdtree->addcmd("shutdown", this, 4);
+			immcmdtree->addcmd("grant", this, 5);
 			maincmdtree->addcmd("look", this, 6);
-			maincmdtree->addcmd("cmdlist", this, 7);
+			immcmdtree->addcmd("cmdlist", this, 7);
 			maincmdtree->addcmd("save", this, 8);
 		}
 

@@ -489,7 +489,7 @@ class Logging_CPP_CommandFactory : public CommandFactory
 		Logging_CPP_CommandFactory(void)
 			: CommandFactory()
 		{
-			maincmdtree->addcmd("logging", this, 1);
+			immcmdtree->addcmd("logging", this, 1);
 
 			/* Create subcommand tree */
 			logsubcmdtree = new CommandTree();

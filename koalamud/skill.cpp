@@ -159,7 +159,7 @@ class Skill_CPP_CommandFactory : public CommandFactory
 		Skill_CPP_CommandFactory(void)
 			: CommandFactory()
 		{
-			maincmdtree->addcmd("skillset", this, 1);
+			immcmdtree->addcmd("skillset", this, 1);
 			maincmdtree->addcmd("skills", this, 2);
 		}
 

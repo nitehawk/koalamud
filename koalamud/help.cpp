@@ -273,7 +273,7 @@ class Help_CPP_CommandFactory : public CommandFactory
 			: CommandFactory()
 		{
 			maincmdtree->addcmd("help", this, 1);
-			maincmdtree->addcmd("helpedit", this, 2);
+			olccmdtree->addcmd("help", this, 2);
 		}
 
 		/** Handle command object creations */

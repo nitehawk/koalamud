@@ -620,6 +620,39 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
+		case 14: /* {{{ db at version 14, Add welcome art table */
+		{
+			cout << "Database schema at version " << schemaversion
+					 << ", upgrading to version " << schemaversion+1 << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table welcomeart (" << endl
+						<< "name varchar(30) not null primary key," << endl
+						<< "art text not null);";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion+1 << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '" << ++schemaversion << "'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
 		default:  /* {{{ Schema version is current */
 		{
 			cout << "Database schema at version " << schemaversion 

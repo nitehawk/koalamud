@@ -64,7 +64,7 @@ class Help : public Command
 					if (q.numRowsAffected())
 					{
 						q.next();
-						os << "Help: " << q.value(0).toString() << endl << endl 
+						os << "|GHelp:|B " << q.value(0).toString() << "|x" <<endl<< endl 
 							 << q.value(1).toString() << endl;
 						_ch->sendtochar(str);
 						return 0;
@@ -94,7 +94,7 @@ class Help : public Command
 						{
 							os << "Help topic search results matching: " << endl
 								 << "'" << searchargs << "'" << endl;
-							os << "Topic Number      Title" << endl;
+							os << "|mTopic Number|x     |bTitle|x" << endl;
 							unsigned int count = 0;
 							while (q.next() && count < 18)
 							{
@@ -105,8 +105,8 @@ class Help : public Command
 							os << "  " << q.value(1).toString() << endl;
 							}
 
-							os << endl << "Displayed first " << count << " results of "
-								 << total << " results total." << endl;
+							os << endl << "Displayed first |r" << count <<"|x results of |r"
+								 << total << "|x results total." << endl;
 							_ch->sendtochar(str);
 						} else {
 							os << "No help topics matched your query." << endl;
@@ -131,14 +131,14 @@ class Help : public Command
 					if ((total = q.numRowsAffected()) == 1)
 					{
 						q.next();
-						os << "Help: " << q.value(1).toString() << endl << endl
+						os << "|GHelp:|B " << q.value(1).toString()<< "|x" << endl << endl
 						   << q.value(2).toString() << endl;
 						_ch->sendtochar(str);
 						return 0;
 					} else if (total > 1) {
 						os << "Help topic search results matching: " << endl
 							 << "'" << searchargs << "'" << endl;
-						os << "Topic Number      Title" << endl;
+						os << "|mTopic Number      |bTitle|x" << endl;
 						unsigned int count = 0;
 						while (q.next() && count < 18)
 						{
@@ -149,13 +149,13 @@ class Help : public Command
 							os << "  " << q.value(1).toString() << endl;
 						}
 
-						os << endl << "Displayed first " << count << " results of "
-							 << total << " results total." << endl;
+						os << endl << "Displayed first |r" << count << "|x results of |r"
+							 << total << "|x results total." << endl;
 						_ch->sendtochar(str);
 						return 0;
 					} else {
 						os << "That help topic was not found." << endl
-							 << "Try 'help search " << args << "'" << endl;
+							 << "Try '|Yhelp search " << args << "|x'" << endl;
 						_ch->sendtochar(str);
 						return 0;
 					}

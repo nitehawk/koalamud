@@ -87,18 +87,17 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char,
 
 		/** Operator new overload */
 		void * operator new(size_t obj_size)
-			{ return poolalloc.alloc(obj_size); }
+			{ return koalamud::PoolAllocator::alloc(obj_size); }
 
 		/** Operator delete overload */
 		void operator delete(void *ptr)
-			{ poolalloc.free(ptr); }
+			{ koalamud::PoolAllocator::free(ptr); }
     
     private slots:
     virtual void readclient(void);
 
 		public slots:
 		virtual void setdisconnect(bool dis = true) { _disconnecting = dis; }
-		virtual void runcmd(cmdentry_t *cmd, QString word, QString arg);
 		virtual void parseline(QString line, QString cline, QString cmdword);
 		virtual void updateguistatus(void);
 		virtual bool sendtochar(QString text);

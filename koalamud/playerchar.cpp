@@ -14,7 +14,11 @@
 
 #define KOALA_PLAYERCHAR_CXX "%A%"
 
+#include <qregexp.h>
+
 #include <iostream>
+
+#include <unistd.h>
 
 #include "event.hxx"
 #include "playerchar.hxx"
@@ -26,8 +30,9 @@ K_PlayerChar::K_PlayerChar(int socket, QObject *parent = NULL,
 {
     if ( guiactive )
     {
-	plrstatuslistitem = new QListViewItem(stat->PlayerStatusList, "Unnamed", "0");
-	stat->updateplayercount();
+			plrstatuslistitem = new QListViewItem(stat->PlayerStatusList,
+				"Unnamed", "0", "Get Name");
+			stat->updateplayercount();
     }
 
 	/* Add ourself to the connected player list */
@@ -46,8 +51,9 @@ K_PlayerChar::~K_PlayerChar()
 		 * now loosing link means the player is logged off as normal which will
 		 * autosave (later) */
 
-		/* Remove ourself from the player list */
+		/* Remove ourself from the player lists */
 		connectedplayerlist.removeRef(this);
+		connectedplayermap.remove(_name);
 
 		/* Cleanup our status window information */
     delete plrstatuslistitem;
@@ -55,6 +61,23 @@ K_PlayerChar::~K_PlayerChar()
     {
 			stat->updateplayercount();
     }
+}
+
+void K_PlayerChar::updateguistatus(void)
+{
+	if (guiactive)
+	{
+		plrstatuslistitem->setText(0, _name);
+		switch (_state)
+		{
+			case STATE_GETNAME:
+				plrstatuslistitem->setText(2, QString("Get Name"));
+				break;
+			case STATE_PLAYING:
+				plrstatuslistitem->setText(2, QString("Playing"));
+				break;
+		}
+	}
 }
 
 void K_PlayerChar::readclient(void)
@@ -96,12 +119,21 @@ void K_PlayerChar::readclient(void)
 
 bool K_PlayerChar::event(QEvent *e)
 {
+	static bool disconeventposted = false;
 	switch (e->type())
 	{
 		case EVENT_CHAR_OUTPUT:
 			if (_disconnecting)
 			{
-				delete this;
+				if (disconeventposted)
+					delete this;
+				else
+				{
+					disconeventposted = true;
+					QThread::postEvent(this, new QCustomEvent(EVENT_CHAR_OUTPUT));
+				}
+			} else {
+				updateguistatus();
 			}
 			return true;
 		default:
@@ -113,16 +145,13 @@ void K_PlayerChar::setName(QString name)
 {
 	/* Fall through to parent implementation */
 	K_Char::setName(name);
-	/* Handle gui tasks */
-	if (guiactive)
-	{
-		/* Change our name in the status list */
-		plrstatuslistitem->setText(0, _name);
-	}
 }
 
 void K_PlayerChar::runcmd(cmdentry_t *cmd, QString word, QString args)
 {
+	if (cmd == NULL)
+		return;
+
 	/* FIXME: */
 	/* We should check that everything is ok for running the command here */
 
@@ -144,6 +173,13 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 		case STATE_GETNAME:
 			setName(cmdword);
 			_state = STATE_PLAYING;
+			/* Playermap is updated when the player goes into STATE_PLAYING */
+			connectedplayermap.insert(_name, this);
+			/* Join gossip channel if it exists */
+			if (channelmap["gossip"] != NULL)
+			{
+				channelmap["gossip"]->joinchannel(this);
+			}
 			break;
 		case STATE_PLAYING:
 			/* If the command exists, run it using 'this->runcmd()' */
@@ -161,6 +197,53 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 	}
 }
 
+/* Replace template elements with appropriate strings and send on to char */
+void K_PlayerChar::channelsendtochar(K_PlayerChar *from, QString templateall,
+				QString templatesender, QString msg)
+{
+	if (from == this)
+	{
+		/* This is the version to ourself, fill in template sender and send it on
+		 */
+		QString outmsg;
+		outmsg = templatesender.replace(QRegExp("%sender%"), "You");
+		outmsg = outmsg.replace(QRegExp("%message%"), msg);
+		QString endline;
+		QTextOStream os(&endline);
+		os << endl;
+		sendtochar(outmsg);
+		sendtochar(endline);
+		return;
+	} else
+	{
+		QString outmsg;
+		outmsg = templateall.replace(QRegExp("%sender%"),
+					from->getName(this) );
+		outmsg = outmsg.replace(QRegExp("%message%"), msg);
+		QString endline;
+		QTextOStream os(&endline);
+		os << endl;
+		sendtochar(outmsg);
+		sendtochar(endline);
+	}
+}
+
+/* When we start tracking subscribed channels, this will remove chan from the
+ * list */
+void K_PlayerChar::channeldeleted(KoalaChannel *chan)
+{
+
+}
+
+/* Use this to send to send all strings to the character.  This isolates
+ * colorize operations to a single function when we start handling color */
+bool K_PlayerChar::sendtochar(QString text)
+{
+	QTextStream os(this);
+	os << text;
+}
+
+/* {{{ Input task implementation */
 /* Run an input task and queue another event if more lines of input are
  * available */
 void K_PCInputTask::run(void) throw()
@@ -207,3 +290,4 @@ void K_PCInputTask::run(void) throw()
 	}
 	ch->linequeuelock.release();
 }
+/* }}} Input task implementation */

@@ -144,19 +144,103 @@ QString Room::displayRoom(Char *ch, bool brief=false)
 
 	if (compass)
 	{
-		out << " " << (exits[DIR_NORTHWEST] ? "|YNW" : "|B- ");
-		out << "     " << (exits[DIR_NORTH] ? "|YN" : "|B-");
-		out << "     " << (exits[DIR_NORTHEAST] ? "|YNE" : " |B-|x");
+		out << " ";
+		if (exits[DIR_NORTHWEST] && exits[DIR_NORTHWEST]->isVisible())
+		{
+			if (exits[DIR_NORTHWEST]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M# ";
+			} else {
+				/* Still need to account for light level */
+				out << "|YNW";
+			}
+		} else {
+			out << "|B- ";
+		}
+		out << "     ";
+		if (exits[DIR_NORTH] && exits[DIR_NORTH]->isVisible())
+		{
+			if (exits[DIR_NORTH]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YN";
+			}
+		} else {
+			out << "|B-";
+		}
+		out << "     ";
+		if (exits[DIR_NORTHEAST] && exits[DIR_NORTHEAST]->isVisible())
+		{
+			if (exits[DIR_NORTHEAST]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << " |M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YNE";
+			}
+		} else {
+			out << " |B-";
+		}
 		out << "  ";
 	}
 	out << "|Y" << _title << "|x" << endl;
 
 	if (compass)
 	{
-		out << " " << (exits[DIR_WEST] ? "|YW" : "|B-");
-		out << " |B<-" << (exits[DIR_UP] ? "|YU" : "|B-");
-		out << "|B-[|MM|B]-" << (exits[DIR_DOWN] ? "|YD" : "|B-");
-		out << "|B-> " << (exits[DIR_EAST] ? "|YE" : "|B-|x");
+		out << " ";
+		if (exits[DIR_WEST] && exits[DIR_WEST]->isVisible())
+		{
+			if (exits[DIR_WEST]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YW";
+			}
+		} else {
+			out << "|B-";
+		}
+		out << " |B<-";
+		if (exits[DIR_UP] && exits[DIR_UP]->isVisible())
+		{
+			if (exits[DIR_UP]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YU";
+			}
+		} else {
+			out << "-";
+		}
+		out << "|B-[|MM|B]-";
+		if (exits[DIR_DOWN] && exits[DIR_DOWN]->isVisible())
+		{
+			if (exits[DIR_DOWN]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YD";
+			}
+		} else {
+			out << "-";
+		}
+		out << "|B-> ";
+		if (exits[DIR_EAST] && exits[DIR_EAST]->isVisible())
+		{
+			if (exits[DIR_EAST]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YE";
+			}
+		} else {
+			out << "-";
+		}
 		out << " ";
 	}
 	
@@ -164,9 +248,45 @@ QString Room::displayRoom(Char *ch, bool brief=false)
 
 	if (compass)
 	{
-		out << " " << (exits[DIR_SOUTHWEST] ? "|YSW" : "|B- ");
-		out << "     " << (exits[DIR_SOUTH] ? "|YS" : "|B-");
-		out << "     " << (exits[DIR_SOUTHEAST] ? "|YSE" : " |B-|x");
+		out << " ";
+		if (exits[DIR_SOUTHWEST] && exits[DIR_SOUTHWEST]->isVisible())
+		{
+			if (exits[DIR_SOUTHWEST]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M# ";
+			} else {
+				/* Still need to account for light level */
+				out << "|YSW";
+			}
+		} else {
+			out << "|B- ";
+		}
+		out << "     ";
+		if (exits[DIR_SOUTH] && exits[DIR_SOUTH]->isVisible())
+		{
+			if (exits[DIR_SOUTH]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << "|M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YS";
+			}
+		} else {
+			out << "|B-";
+		}
+		out << "     ";
+		if (exits[DIR_SOUTHEAST] && exits[DIR_SOUTHEAST]->isVisible())
+		{
+			if (exits[DIR_SOUTHEAST]->isSet(RoomExit::FLAG_CLOSED))
+			{
+				out << " |M#";
+			} else {
+				/* Still need to account for light level */
+				out << "|YSE";
+			}
+		} else {
+			out << " |B-|x";
+		}
 		out << endl;
 	}
 	

@@ -31,6 +31,7 @@
 
 class K_PlayerChar;
 #include "cmd.hxx"
+#include "comm.hxx"
 
 /* Small struct used to hold the strings for commands so they can be queued in
  * a text-in queue */
@@ -82,6 +83,11 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
 		virtual void setdisconnect(bool dis = true) { _disconnecting = dis; }
 		virtual void runcmd(cmdentry_t *cmd, QString word, QString arg);
 		virtual void parseline(QString line, QString cline, QString cmdword);
+		virtual void updateguistatus(void);
+		virtual bool sendtochar(QString text);
+
+		virtual void channelsendtochar(K_PlayerChar *, QString, QString, QString);
+		virtual void channeldeleted(KoalaChannel *);
     
     protected:
     QListViewItem *plrstatuslistitem;
@@ -96,13 +102,16 @@ class K_PlayerChar : public virtual KoalaDescriptor, public virtual K_Char
 		friend class K_PCInputTask;
 };
 
+/* Two lists of players used, one linked list and one hashmap */
 typedef QPtrList<K_PlayerChar> playerlist_t;
 typedef QPtrListIterator<K_PlayerChar> playerlistiterator_t;
 
 #ifdef KOALA_PLAYERCHAR_CXX
 playerlist_t connectedplayerlist;
+QDict<K_PlayerChar> connectedplayermap(101, false);
 #else
 extern playerlist_t connectedplayerlist;
+extern QDict<K_PlayerChar> connectedplayermap;
 #endif
 
 #endif  //  KOALA_PLAYERCHAR_HXX

@@ -131,9 +131,186 @@ bool checkandupgradeschema(void)
 				}
 			}
 		} /* }}} */
-		case 2:  /* {{{ Schema version 2 is current */
+		case 2: /* {{{ db at version 2, Add zone table */
 		{
-			cout << "Database schema at version 2 and current" << endl;
+			cout << "Database schema at version 2, upgrading to version 3" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table zone (" << endl;
+				qos << "zoneid int not null auto_increment," << endl;
+				qos << "name varchar(30) not null," << endl;
+				qos << "description varchar(255)," << endl;
+				qos << "status set('Online','OLC') default 'Online' not null," << endl;
+				qos << "primary key (zoneid));";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 3" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '3'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 3" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+		} /* }}} */
+		case 3: /* {{{ db at version 3, Add rooms table */
+		{
+			cout << "Database schema at version 3, upgrading to version 4" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table room (" << endl;
+				qos << "latitude int not null," << endl;
+				qos << "longitude int not null," << endl;
+				qos << "elevation int not null," << endl;
+				qos << "zone int not null default 1," << endl;
+				qos << "title varchar(50) not null," << endl;
+				qos << "flags set('levelrest','regen','dark','deathtrap',";
+				qos << "'nomob','safe','savespot','recallspot','notrack',";
+				qos << "'nomagic','teleport') default '' not null," << endl;
+				qos << "type enum('indoors', 'covered', 'field',";
+				qos << "'city', 'farm', 'forest', 'hill', 'mountain',";
+				qos << "'water', 'underwater', 'flying') " << endl;
+				qos << "default 'field' not null," << endl;
+				qos << "plrlimit int not null default 0," << endl;
+				qos << "description text," << endl;
+				qos << "primary key (latitude,longitude,elevation)," << endl;
+				qos << "foreign key zonelink (zone) references zone (zoneid)" << endl;
+				qos << " on delete set default" << endl;
+				qos << ");";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 4" << endl;
+					cout << "Error: " << query.lastError().databaseText() << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '4'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 4" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+		} /* }}} */
+		case 4: /* {{{ db at version 4, Add zone #1 */
+		{
+			cout << "Database schema at version 4, upgrading to version 5" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "insert into zone (name, description, status) values" << endl;
+				qos << "('Junk Zone', 'Default zone for miscelaneous junk'," << endl;
+				qos << "'Online,OLC');";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 5" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '5'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 5" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+		} /* }}} */
+		case 5: /* {{{ db at version 5, Add empty root #1 */
+		{
+			cout << "Database schema at version 5, upgrading to version 6" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "insert into room (latitude, longitude, elevation," << endl;
+				qos << "title, zone, flags, description)" << endl;
+				qos << "values" << endl;
+				qos << "(0,0,0,'The Origin',";
+				qos << "1, 'safe,savespot,recallspot'," << endl;
+				qos << "'This empty room is the origin of the world');";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 6" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '6'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 6" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+		} /* }}} */
+		case 6: /* {{{ db at version 5, Add room info to player table */
+		{
+			cout << "Database schema at version 6, upgrading to version 7" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "alter table players" << endl;
+				qos << "add inroomlat int not null default 0," << endl;
+				qos << "add inroomlong int not null default 0," << endl;
+				qos << "add inroomelev int not null default 0," << endl;
+				qos << "add foreign key room (inroomlat,inroomlong,inroomelev) ";
+				qos << "references room (longitude,latitude,elevation) ";
+				qos << "on delete set default;";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 7" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '7'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 7" << endl;
+					cout << "Query: " << q << endl;
+					return false;
+				}
+			}
+		} /* }}} */
+		case 7:  /* {{{ Schema version 7 is current */
+		{
+			cout << "Database schema at version 7 and current" << endl;
 		} /* }}} */
 	}
 	return true;

@@ -41,6 +41,8 @@ class Command
 		 * @param ch Pointer to player executing command
 		 */
 		Command(K_PlayerChar *ch) : _ch(ch) {}
+		/** Virtual destructor to make sure we delete things properly */
+		virtual ~Command(void) {}
 
 		/** Run the command 
 		 * @todo This will need to accept some parameters to attach the command to

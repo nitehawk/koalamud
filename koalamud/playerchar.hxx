@@ -51,6 +51,10 @@ class PlayerChar : public Char
 	
 	public slots:
 		virtual void descriptorClosed(void);
+
+	protected:
+		/** Database ID - 0 means we aren't in the database */
+		int dbid;
 };
 	
 }; /* end koalamud namespace */

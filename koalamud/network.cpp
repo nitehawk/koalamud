@@ -15,8 +15,10 @@
 #define KOALA_NETWORK_CXX "%A%"
 
 #include <qregexp.h>
+#include <qhostaddress.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 #include "main.hxx"
 #include "logging.hxx"
@@ -156,9 +158,16 @@ void Listener::newConnection(int socket)
 Descriptor::Descriptor(int sock)
 	: Socket(sock), sendcolor(false), inBuffer(4096), outBuffer(4096)
 {
+	struct sockaddr_in addr;
+	socklen_t len = sizeof(struct sockaddr_in);
+
+	memset(&addr, 0, len);
+	getpeername(_sock, (struct sockaddr *)&addr, &len);
+	
 	QString str;
 	QTextOStream os(&str);
-	os << "New connection from Unknown";
+	os << "New connection from "
+		 << QHostAddress(ntohl(addr.sin_addr.s_addr)).toString();
 	Logger::msg(str);
 }
 
@@ -171,6 +180,12 @@ void Descriptor::dispatchRead(void)
 	int maxread = inBuffer.getFree();
 	int numread = read(_sock, start, maxread);
 	inBuffer.externDatain(numread);
+
+	if (numread == 0)
+	{
+		delete this;
+		return;
+	}
 
 	readClient();
 }

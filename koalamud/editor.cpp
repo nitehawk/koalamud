@@ -15,6 +15,7 @@
 #define KOALA_EDITOR_CXX "%A%"
 
 #include "editor.hxx"
+#include "language.hxx"
 
 namespace koalamud
 {
@@ -24,7 +25,8 @@ namespace koalamud
  * @param pd Descriptor to attach editor to
  * @param oldParser Parser to return control to when we are done
  * @param postcmd command to pass edited string back to when done
- * @initial Initial editor state
+ * @param initial Initial editor state
+ * @param sendinitial Do we send the help screen when we load
  */
 Editor::Editor(Char *ch, ParseDescriptor *pd, Parser *oldParser,
 						Command *postcmd, QString initial = "", bool sendinitial=true)
@@ -45,7 +47,8 @@ Editor::Editor(Char *ch, ParseDescriptor *pd, Parser *oldParser,
  * @param ch Character to attach editor to
  * @param pd Descriptor to attach editor to
  * @param activeolc OLC we were called from
- * @initial Initial editor state
+ * @param initial Initial editor state
+ * @param sendinitial Do we send the help screen when we load
  */
 Editor::Editor(Char *ch, ParseDescriptor *pd, olc *activeolc,
 								QString initial="", bool sendinitial=true)
@@ -154,6 +157,22 @@ void Editor::parseLine(QString line)
 				sendHelp();
 				break;
 			}
+			if (QString("@language").startsWith(cline.lower()))
+			{
+				QString lang = cline.section(" ", 1,1);
+				lang = Language::getLangIDfromShort(lang);
+				if (lang.length() != 5)
+				{
+					os << endl << "That language is unknown." << endl;
+					_desc->send(out);
+					break;
+				}
+				os << endl << "Starting soon, this will allow you to change the"
+					<< " language for a part of an editor string.  This editor"
+					<< " feature is currently unimplemented." << endl;
+				_desc->send(out);
+				break;
+			}
 			if (QString("@list").startsWith(cline.lower()))
 			{
 				QStringList::iterator cur;
@@ -216,14 +235,18 @@ void Editor::sendHelp(void)
 
 	os << endl <<
 "KoalaMud Text Editor" << endl <<
-"@quit    Save and quit" << endl <<
-"@abort   Abort" << endl <<
-"@list    List edit buffer" << endl <<
-"@h       This help page" << endl << 
-"@i #     Insert lines before #" << endl <<
-"@a       Append lines to end of buffer" << endl <<
-"@d #     Delete line number #" << endl <<
-"@d #1 #2 Delete lines #1 to #2" << endl <<
+"@quit     Save and quit" << endl <<
+"@abort    Abort" << endl <<
+"@list     List edit buffer" << endl <<
+"@language Set language to be used:" << endl <<
+"            takes shortname, startline, endline" << endl <<
+"            startline and endline can be left off to start" << endl <<
+"            appending to the buffer in a specific language" << endl <<
+"@h        This help page" << endl << 
+"@i #      Insert lines before #" << endl <<
+"@a        Append lines to end of buffer" << endl <<
+"@d #      Delete line number #" << endl <<
+"@d #1 #2  Delete lines #1 to #2" << endl <<
 "While editing, a . on its own will bring you back to the menu." << endl;
 _desc->send(out);
 }

@@ -359,7 +359,7 @@ void HelpOLC::save(void)
 		qos << "update helptext " << endl
 				<< "set title='" << _topic << "', " << endl
 				<< "keywords='" << _keywords << "', " << endl
-				<< "body='" << escapeString(_body) << "'" << endl
+				<< "body='" << Logger::escapeString(_body) << "'" << endl
 				<< "where helpid = " << _entry << ";";
 	}
 	if (q.exec(query))

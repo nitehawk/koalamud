@@ -82,6 +82,8 @@ class Char : public QObject
 		 * Assume that calling function handles the player lists for the room pair
 		 */
 		void setRoom(Room *newroom) { _inroom = newroom; }
+		QString languageMorph(QString langid, QString msg, bool spoken = false);
+		
 
 	public: /* Pure virtuals */
 		/** Load character from database

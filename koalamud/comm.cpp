@@ -26,10 +26,10 @@ class Tell : public Command
 {
 	public:
 		/** Pass through constructor */
-		Tell(K_PlayerChar *ch) : Command(ch) {}
+		Tell(Char *ch) : Command(ch) {}
 
 		/** Run tell command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QString to = args.section(' ', 0, 0);
 			QString msg = args.section(' ', 1);
@@ -52,7 +52,7 @@ class Tell : public Command
 			}
 
 			/* First up we need to get a pointer to the player */
-			K_PlayerChar *tellto = connectedplayermap[to];
+			Char *tellto = connectedplayermap[to];
 			if (tellto == NULL)
 			{
 				QString str;
@@ -89,12 +89,12 @@ class Gossip : public Command
 {
 	public:
 		/** Pass through constructor */
-		Gossip(K_PlayerChar *ch) : Command(ch) {}
+		Gossip(Char *ch) : Command(ch) {}
 
 		/** Run gossip command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
-			KoalaChannel *goschan = channelmap["gossip"];
+			Channel *goschan = channelmap["gossip"];
 			if (goschan == NULL)
 			{
 				return 1;
@@ -114,7 +114,7 @@ class Gossip : public Command
 			/** Register our commands and create gossip channel */
 			Comm_CPP_CommandFactory(void) : CommandFactory()
 			{
-				new KoalaChannel("gossip", "%sender% gossips, '%message%'",
+				new Channel("gossip", "%sender% gossips, '%message%'",
 							"%sender% gossip, '%message%'");
 
 				maincmdtree->addcmd("gossip", this, 1);
@@ -122,7 +122,7 @@ class Gossip : public Command
 			}
 
 			/** Handle Command object creation */
-			virtual Command *create(unsigned int id, K_PlayerChar *ch)
+			virtual Command *create(unsigned int id, Char *ch)
 			{
 				switch (id)
 				{
@@ -135,11 +135,11 @@ class Gossip : public Command
 			}
 	};
 
+	/** Command factory instance for comm.cpp */
 	Comm_CPP_CommandFactory Comm_CPP_CommandFactoryInstance;
-}; /* end koalamud namespace */
 
 /* Channel class implementation */
-KoalaChannel::KoalaChannel(QString name, QString chantemplateall,
+Channel::Channel(QString name, QString chantemplateall,
 		QString chantemplatesender)
 	: QObject(NULL, name), _name(name), _templateall(chantemplateall),
 		_templatesender(chantemplatesender)
@@ -148,29 +148,31 @@ KoalaChannel::KoalaChannel(QString name, QString chantemplateall,
 	channelmap.insert(_name, this);
 }
 
-KoalaChannel::~KoalaChannel(void)
+Channel::~Channel(void)
 {
 	channelmap.remove(_name);
 }
 
-void KoalaChannel::joinchannel(K_PlayerChar *ch)
+void Channel::joinchannel(Char *ch)
 {
 	connect(this,
-		SIGNAL(channelmessagesent(K_PlayerChar *, QString, QString, QString)),
+		SIGNAL(channelmessagesent(Char *, QString, QString, QString)),
 		ch,
-		SLOT(channelsendtochar(K_PlayerChar *, QString, QString, QString)));
+		SLOT(channelsendtochar(Char *, QString, QString, QString)));
 		
-	connect(this, SIGNAL(channeldeleted(KoalaChannel *)),
-		ch, SLOT(channeldeleted(KoalaChannel *)));
+	connect(this, SIGNAL(channeldeleted(Channel *)),
+		ch, SLOT(channeldeleted(Channel *)));
 }
 
-void KoalaChannel::leavechannel(K_PlayerChar *ch)
+void Channel::leavechannel(Char *ch)
 {
 	disconnect(ch);
 }
 
-void KoalaChannel::sendtochannel(K_PlayerChar *ch, QString msg)
+void Channel::sendtochannel(Char *ch, QString msg)
 {
 	/* For the moment, just emit the signal, no processing */
 	emit channelmessagesent(ch, _templateall, _templatesender, msg);
 }
+
+}; /* end koalamud namespace */

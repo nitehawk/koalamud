@@ -19,6 +19,7 @@
 #include "logging.hxx"
 #include "cmd.hxx"
 #include "cmdtree.hxx"
+#include "playerchar.hxx"
 
 /* New Command Stuff */
 namespace koalamud {
@@ -28,9 +29,9 @@ class Memstat : public Command
 {
 	public:
 		/** Pass through constructor */
-		Memstat(K_PlayerChar *ch) : Command(ch) {}
+		Memstat(Char *ch) : Command(ch) {}
 		/** Run memstat command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QString str;
 			QTextOStream os(&str);
@@ -62,16 +63,16 @@ class Who : public Command
 {
 	public:
 		/** Pass through constructor */
-		Who(K_PlayerChar *ch) : Command(ch) {}
+		Who(Char *ch) : Command(ch) {}
 		/** Run who command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QString str;
 			QTextOStream os(&str);
 
 			/* Grab an iterator to the player list and loop through it */
 			playerlistiterator_t pli(connectedplayerlist);
-			K_PlayerChar *cur;
+			Char *cur;
 			os << "The following players are online: " << endl;
 			while ((cur = pli.current()) != NULL)
 			{
@@ -93,9 +94,9 @@ class Quit : public Command
 {
 	public:
 		/** Pass through constructor */
-		Quit(K_PlayerChar *ch) : Command(ch) {}
+		Quit(Char *ch) : Command(ch) {}
 		/** Run quit command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QString str;
 			QTextOStream os(&str);
@@ -115,9 +116,9 @@ class Shutdown : public Command
 {
 	public:
 		/** Pass through constructor */
-		Shutdown(K_PlayerChar *ch) : Command(ch) {}
+		Shutdown(Char *ch) : Command(ch) {}
 		/** Run shutdown command */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QString str;
 			QTextOStream os(&str);
@@ -149,12 +150,12 @@ class Grant : public Command
 {
 	public:
 		/** Pass through constructor */
-		Grant(K_PlayerChar *ch) : Command(ch) {}
+		Grant(Char *ch) : Command(ch) {}
 		/** Run grant command
 		 * grant [add|remove|block|groupadd|grouprem] [cmd or group] [player]
 		 * We expect three strings as arguments.  For simplicity, we'll parse
 		 * these ourself instead of going down another class level. */
-		virtual unsigned int run(QString cmd, QString args)
+		virtual unsigned int run(QString args)
 		{
 			QSqlQuery q;
 			QString str;
@@ -335,7 +336,7 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 		}
 
 		/** Handle command object creations */
-		virtual Command *create(unsigned int id, K_PlayerChar *ch)
+		virtual Command *create(unsigned int id, Char *ch)
 		{
 			switch (id)
 			{
@@ -357,17 +358,21 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 /** Command factory for cmd.cpp module.  */
 Cmd_CPP_CommandFactory Cmd_CPP_CommandFactoryInstance;
 
-unsigned int Command::runCmd(QString cmd, QString args)
+/** This acts as the entry point for running commands.  It does all of the
+ * permissions checking to make sure that the character has permission to run
+ * the command, and runs the command if they do.
+ */
+unsigned int Command::runCmd(QString args)
 	throw (koalamud::exceptions::cmdpermdenied)
 {
 	QSqlQuery q;
 
 	if (_overrideperms)
-		return run(cmd, args);
+		return run(args);
 	
 	/* Check if the command is restricted */
 	if (!isRestricted())
-		return run(cmd, args);
+		return run(args);
 
 	/* We need to verify that ch has permission to run this command.
 	 * First we need to check if they have explicitly been granted or denied
@@ -392,7 +397,7 @@ unsigned int Command::runCmd(QString cmd, QString args)
 				q.next();
 				if (q.value(0).toString() == "yes")
 				{
-					return run(cmd, args);
+					return run(args);
 				} else if (q.value(0).toString() == "no")
 				{
 					throw koalamud::exceptions::cmdpermdenied();
@@ -417,7 +422,7 @@ unsigned int Command::runCmd(QString cmd, QString args)
 
 		if (q.exec(query))
 			if (q.numRowsAffected())
-				return run(cmd, args);
+				return run(args);
 	}
 
 	/* Add any additional permissions checks here. */

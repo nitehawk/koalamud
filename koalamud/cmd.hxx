@@ -20,7 +20,13 @@
 
 #include "main.hxx"
 #include "exception.hxx"
-#include "playerchar.hxx"
+
+/* Predefine types */
+namespace koalamud {
+	class Command;
+};
+
+#include "char.hxx"
 
 /* New Command stuff */
 namespace koalamud {
@@ -35,7 +41,7 @@ class Command
 {
 	protected:
 		/** Pointer to player executing this command */
-		K_PlayerChar *_ch;
+		Char *_ch;
 		/** True if we are overriding permissions - may not be needed */
 		bool _overrideperms;
 
@@ -46,10 +52,10 @@ class Command
 		 * command to make sure it is a valid command before updating the
 		 * database)
 		 */
-		Command(K_PlayerChar *ch, bool overrideperms=false)
+		Command(Char *ch, bool overrideperms=false)
 				: _ch(ch), _overrideperms(overrideperms) {}
 
-		virtual unsigned int runCmd(QString cmd, QString args)
+		virtual unsigned int runCmd(QString args)
 				throw (koalamud::exceptions::cmdpermdenied);
 		/** Virtual destructor to make sure we delete things properly */
 		virtual ~Command(void) {}
@@ -57,7 +63,7 @@ class Command
 		/** Run the command 
 		 * @todo This will need to accept some parameters to attach the command to
 		 * parameters and other information needed to actually run the command */
-		virtual unsigned int run(QString cmd, QString args) = 0;
+		virtual unsigned int run(QString args) = 0;
 
 		/** Is this a restricted command
 		 * Default is unrestricted.  Override in command trees that are restricted
@@ -110,16 +116,10 @@ class CommandFactory
 		 * @param id used as an identifier specific to a specific command factory
 		 * @param ch Pointer to the character executing this command.
 		 * @return Pointer to new Command object
-		 *
-		 * @todo PlayerChar class needs to be rebuilt in the koalamud namespace
-		 * before we make use of it for the real version of this function.
 		 */
-		virtual Command *create(unsigned int id , K_PlayerChar *ch) = 0;
-		/*virtual Command *create(unsigned int id , PlayerChar *ch) = 0; */
+		virtual Command *create(unsigned int id , Char *ch) = 0;
 };
 
 }; /* Koalamud namespace */
-
-#define KOALACMD(cmdn) void cmdn(K_PlayerChar *ch, QString cmd, QString args)
 
 #endif // KOALA_CMD_HXX

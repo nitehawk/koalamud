@@ -84,6 +84,7 @@ void MainServer::run(void)
 	/* Start a listener */
 	new koalamud::Listener(4444);
 	new koalamud::Listener(6464);
+	new koalamud::Listener(6500);
 
 	/* Update status bar */
 	if (_guiactive) {

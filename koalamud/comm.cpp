@@ -88,6 +88,7 @@ void initcommcmddict(void)
 	cmddict.insert(QString("tell"), new cmdentry_t("tell", cmd_tell));
 	cmddict.insert(QString("gossip"), new cmdentry_t("gossip", cmd_gossip));
 	cmddict.insert(QString("gos"), new cmdentry_t("gossip", cmd_gossip));
+	cmddict.insert(QString("goss"), new cmdentry_t("gossip", cmd_gossip));
 
 	new KoalaChannel("gossip", "%sender% gossips, '%message%'",
 			"%sender% gossip, '%message%'");

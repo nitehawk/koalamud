@@ -69,4 +69,30 @@ PlayerChar::~PlayerChar(void)
 	}
 }
 
+/** Handle closing descriptor
+ * This tags the player as linkless and starts a counter.  When the counter
+ * reaches a specific threhold, the player is logged off completely.
+ */
+void PlayerChar::descriptorClosing(void)
+{
+	/* Until we actually get the event/tick thread setup, we just log off the
+	 * player (delete player object).
+	 * FIXME
+	 */
+	_desc = NULL;
+	delete this;
+}
+
+/** Change the descriptor attached to this PC
+ * This will disconnect from the old descriptor and delete it and link to the
+ * new descriptor
+ */
+void PlayerChar::setDesc(ParseDescriptor *desc)
+{
+	disconnect(_desc);
+	delete _desc;
+	_desc = desc;
+	connect(desc, SIGNAL(destroyed()), this, SLOT(descriptorClosed()));
+}
+
 }; /* end koalamud namespace */

@@ -57,9 +57,9 @@ class Char : public QObject
 	public: // Constructors/destructors
 		/** Name supplied in constructor */
 		Char(QString name = NULL, ParseDescriptor *desc=NULL)
-			: _name(name), _desc(desc), _disconnecting(false),
+			: _name(name), _desc(NULL), _disconnecting(false),
 				cmdtaskrunning(false)
-			{}
+			{ if (desc) setDesc(desc); }
 		/** Empty virtual destructor to ensure cleanup happens correctly */
 		virtual ~Char(void) {}
 
@@ -68,6 +68,9 @@ class Char : public QObject
 		virtual void setName(QString name)
 			{ _name = name; }
 		virtual QString getName(Char *pair=NULL);
+		virtual void setDesc(ParseDescriptor *desc);
+		/** Return pointer to connected descriptor */
+		virtual ParseDescriptor *getDesc(void) { return _desc; }
 		virtual bool visibleTo(Char *pair);
 		/** Is this a player char
 		 * Return true if this is a player character, false otherwise */
@@ -96,6 +99,8 @@ class Char : public QObject
 		virtual void setdisconnect(bool dis = true) { _disconnecting = dis;}
 		/** A channel has just been deleted */
 		virtual void channeldeleted(Channel *chan) { if (chan) return;}
+		/** Handle closing descriptor */
+		virtual void descriptorClosed(void) { _desc = NULL;}
 
 	public: /* Operators */
 		/** Operator new overload */

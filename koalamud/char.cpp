@@ -51,6 +51,19 @@ bool Char::visibleTo(Char *pair)
 	return true;
 }
 
+/** Attach a descriptor to character */
+void Char::setDesc(ParseDescriptor *desc)
+{
+	/* Disconnect all signals from this descriptor */
+	if (_desc)
+	{
+		disconnect(_desc);
+	}
+	_desc = desc;
+	/* Connect close signals */
+	connect(desc, SIGNAL(destroyed()), this, SLOT(descriptorClosed()));
+}
+
 /** Send a message from a channel on to the char */
 void Char::channelsendtochar(Char *from, QString templateall,
 			QString templatesender, QString msg)
@@ -68,7 +81,6 @@ void Char::channelsendtochar(Char *from, QString templateall,
 		sendtochar(endline);
 		sendtochar(outmsg);
 		sendtochar(endline);
-		sendPrompt();
 		return;
 	} else
 	{
@@ -85,6 +97,7 @@ void Char::channelsendtochar(Char *from, QString templateall,
 		sendtochar(endline);
 		sendtochar(outmsg);
 		sendtochar(endline);
+		sendPrompt();
 	}
 }
 

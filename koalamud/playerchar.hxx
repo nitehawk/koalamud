@@ -47,6 +47,12 @@ class PlayerChar : public Char
 		virtual bool load(void) {return false;}
 		/** Save player to database */
 		virtual bool save(void) {return false;}
+
+	public:
+		virtual void setDesc(ParseDescriptor *desc);
+	
+	public slots:
+		virtual void descriptorClosing(void);
 };
 	
 }; /* end koalamud namespace */

@@ -107,6 +107,11 @@ void Database::checkschema(void)
 	int schemaversion = 0;
 	QSqlQuery query;
 
+	/* Get a random value from the sql server to seed our PRNG */
+	query.exec("select RAND();");
+	query.next();
+	srandom((unsigned int)(query.value(0).toDouble()*100000));
+
 	QSqlQuery getschemaver("select vval from config where vname='SchemaVersion';");
 	if (getschemaver.isActive())
 	{
@@ -630,6 +635,42 @@ void Database::checkschema(void)
 				qos << "create table welcomeart (" << endl
 						<< "name varchar(30) not null primary key," << endl
 						<< "art text not null);";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion+1 << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '" << ++schemaversion << "'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 15: /* {{{ db at version 15, Add languages table */
+		{
+			cout << "Database schema at version " << schemaversion
+					 << ", upgrading to version " << schemaversion+1 << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table languages (" << endl
+						<< "langid char(5) not null primary key," << endl
+						<< "name varchar(20) not null unique," << endl
+						<< "parentid char(5) not null," << endl
+						<< "charset varchar(50) not null," << endl
+						<< "notes varchar(255) );";
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version "

@@ -126,7 +126,7 @@ QStringList CommandTree::displayBranch(CommandTreeNode *branch,
 bool CommandTree::addcmd(QString name, CommandFactory *fact, unsigned int id)
 {
 	CommandTreeNode *newnode = new CommandTreeNode(name, fact, id);
-	unsigned int len = name.length();
+	int len = name.length();
 	CommandTreeNode *loc = rootnode;
 	const char *cname = name.latin1();
 	short edge;
@@ -162,7 +162,7 @@ bool CommandTree::addcmd(QString name, CommandFactory *fact, unsigned int id)
 		loc = loc->edges[edge];
 		
 		/* Make another try for fitting a short command into the tree */
-		if (len < loc->_name.length())
+		if (len < (int)loc->_name.length())
 		{
 			/* Swap positions */
 			CommandTreeNode *tmp = newnode;
@@ -174,6 +174,10 @@ bool CommandTree::addcmd(QString name, CommandFactory *fact, unsigned int id)
 			{
 				loc->edges[j] = newnode->edges[j];
 				newnode->edges[j] = NULL;
+				if (loc->edges[j])
+				{
+					loc->edges[j]->parent = loc;
+				}
 			}
 			loc->parent = newnode->parent;
 			loc->parent->edges[loc->edgenum(cname[i])] = loc;
@@ -186,7 +190,7 @@ bool CommandTree::addcmd(QString name, CommandFactory *fact, unsigned int id)
 
 			/* Start placement search back at the top with the longer command */
 			cname = newnode->_name.latin1();
-			edge = newnode->edgenum(cname[i]);
+			edge = newnode->edgenum(cname[0]);
 			len = newnode->_name.length();
 			loc = rootnode;
 			i = -1;

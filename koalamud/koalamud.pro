@@ -15,12 +15,14 @@ SOURCES += main.cpp \
            network.cpp \
            char.cpp \
            playerchar.cpp \
-					 cmd.cpp
+					 cmd.cpp \
+					 comm.cpp
 HEADERS += main.hxx \
            koalastatus.h \
            network.hxx \
            char.hxx \
            playerchar.hxx \
 					 cmd.hxx \
+					 comm.hxx \
 					 event.hxx
 FORMS += newnetworkportdlg.ui 

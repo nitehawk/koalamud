@@ -29,7 +29,7 @@
 #include "koalastatus.h"
 #include "cmdtree.hxx"
 #include "language.hxx"
-#include "room.hxx" // Probably temporary
+#include "room.hxx"
 
 namespace koalamud {
 
@@ -71,6 +71,7 @@ MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
 	}
 
 	Language::loadLanguages();
+	Room::loadWorldRooms();
 }
 
 /** Start everything running
@@ -81,8 +82,6 @@ void MainServer::run(void)
 	/* This will be replaced with exception handling */
 	if (!_kmdb || !_kmdb->isonline())
 		return;
-
-	new Room(0,0,0,0);
 
 	Logger::msg("Starting listeners", Logger::LOG_NOTICE);
 

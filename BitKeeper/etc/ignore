@@ -1,2 +1,8 @@
 BitKeeper/*/*
 PENDING/*
+bin
+Makefile
+koalamud.pcs
+.moc
+.obj
+.uic

@@ -338,9 +338,45 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
-		case 7:  /* {{{ Schema version 7 is current */
+		case 7: /* {{{ db at version 7, Add logging table */
 		{
-			cout << "Database schema at version 7 and current" << endl;
+			cout << "Database schema at version 7, upgrading to version 8" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table logging (" << endl;
+				qos << "lid int not null auto_increment primary key," << endl;
+				qos << "severity enum ('Fatal', 'Severe', 'Critical', ";
+				qos << "'Error', 'Warning', 'Notice', 'Info', 'Debug') not null ";
+				qos << " default 'Info'," << endl;
+				qos << "profile varchar(100) not null default 'Default'," << endl;
+				qos << "msgtime datetime not null," << endl;
+				qos << "message text" << endl;
+				qos << ");";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 8" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '8'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 8" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 8:  /* {{{ Schema version 8 is current */
+		{
+			cout << "Database schema at version 8 and current" << endl;
 		} /* }}} */
 	}
 	dbonline = true;

@@ -27,3 +27,22 @@ void K_Char::setName(QString name)
 {
 	_name = name;
 }
+
+QString K_Char::getName(K_Char *pair=NULL)
+{
+	if (pair == NULL)
+		return _name;
+
+	/* Check visibility - Simple for now */
+	if (visibleTo(pair))
+	{
+		return _name;
+	} else {
+		return "someone";
+	}
+}
+
+bool K_Char::visibleTo(K_Char *pair)
+{
+	return true;
+}

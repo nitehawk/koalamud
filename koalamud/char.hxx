@@ -26,7 +26,12 @@ class K_Char : public QObject
 
 	public:
 		virtual void setName(QString name);
-		virtual QString getName(void) {return _name;}
+		/* Return a name string that 'pair' would see in a channel message or
+		 * room - Eg. if this char was invisible and 'pair' couldn't see invis,
+		 * this might return 'someone'.  The string returned will be lowercase
+		 * unless it is the characters real name */
+		virtual QString getName(K_Char *pair=NULL);
+		virtual bool visibleTo(K_Char *pair);
 
 	protected:
 		QString _name;

@@ -55,6 +55,33 @@ Database::~Database(void)
 	defaultDB->close();
 }
 
+/** Get listen ports from database
+ * Return a value list with the ports we should listen on.
+ * @note  Eventually we will need to add the type of listen port along with
+ * the port number.
+ */
+QValueList<int> Database::getListenPorts(QString profile)
+{
+	QString query;
+	QTextOStream qos(&query);
+	QSqlQuery q;
+	QValueList<int> pl;
+
+	qos << "select vval from config" << endl
+			<< "where vname like '" << profile << "-port%';";
+	if (q.exec(query) && q.numRowsAffected() > 0)
+	{
+		while (q.next())
+		{
+			pl << q.value(0).toInt();
+		}
+	} else {
+		pl << 9000;
+	}
+
+	return pl;
+}
+
 /** Validate and upgrade database schema
 	 * 
 	 * @note  There are *NO* break statements between cases.
@@ -89,25 +116,7 @@ void Database::checkschema(void)
 
 	/* Each line in this case statement upgrades the schema to the next version.
 	 * The last case takes no action as the latest version.
-	 * {{{ Notes
-	 * NOTE:  There are *NO* break statements between cases.
-	 * NOTE:  This list *is* very order sensitive.  Changing the order of items
-	 * *will* break schema upgrades
-	 * NOTE:  Since the overall schema version number really doesn't have an
-	 * upper limit, and to limit possible failure modes for upgrades, it is
-	 * probably best to limit each schema version upgrade to two queries:  one
-	 * to update table structures, one to update the schema version.  Having a
-	 * group of updates that require multiple schema version updates really
-	 * won't be a problem, honest.  The benefit is that a failed query is only
-	 * going to affect a single query in a single version.  Otherwise if there
-	 * were three table update querys and the third one failed, it would not be
-	 * possible to fix only the third query and run the update again.  it would
-	 * have to be run manually or moved to a new version block anyway.  The
-	 * single update per version rule ensures that we only need to fix the one
-	 * query and compile to continue schema updates.  It is acceptable, and
-	 * encourages to group updates to each table in a single update if they are
-	 * all being made at the same time. */
-	/* }}} End notes */
+	 */
 	switch(schemaversion)
 	{
 		case 0:  /* {{{ New database - add config table */

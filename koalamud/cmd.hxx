@@ -18,14 +18,13 @@
 #include <qdict.h>
 #include <qstring.h>
 
-#include "main.hxx"
-#include "exception.hxx"
-
 /* Predefine types */
 namespace koalamud {
 	class Command;
 };
 
+#include "main.hxx"
+#include "exception.hxx"
 #include "char.hxx"
 
 /* New Command stuff */

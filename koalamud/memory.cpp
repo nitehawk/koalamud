@@ -14,6 +14,8 @@
 * Classes:
 \***************************************************************/
 
+#define KOALA_MEMORY_CXX "%A%"
+
 #include <malloc.h>
 #include <string.h>
 #include <math.h>
@@ -104,7 +106,6 @@ unsigned int PoolAllocator::stamppool(T_PoolInfo *pool, T_allocblock* start,
 																			T_allocblock *list=NULL)
 {
 	unsigned int step = pool->poolsize + sizeof(T_PoolInfo *);
-	cout << "Block step: " << step << endl;
 	T_allocblock *cur = start;
 	for (unsigned int i=1; i < count; i++)
 	{
@@ -174,7 +175,7 @@ void PoolAllocator::createpool(unsigned int blocksize)
 	syslock.release();
 
 	/* Calculate the number of blocks we can fit in the remaining memory */
-	blockcount = (unsigned int)floor(poolalloc/
+	blockcount = (unsigned int)floor((poolalloc - sizeof(T_PoolInfo))/
 									(newpool->poolsize + sizeof(T_PoolInfo *)));
 
 	/* Setup pool freelist head and walk through the allocated memory to stamp
@@ -268,7 +269,7 @@ unsigned int PoolAllocator::expandpool(unsigned int poolsize,
  * @param size Size of memory block to allocate
  * @return Pointer to allocated block
  */
-void *PoolAllocator::alloc(size_t size)
+void *PoolAllocator::ialloc(size_t size)
 {
 	/* Make sure we aren't allocating too big of a block */
 	if (size > maxblocksize)
@@ -337,7 +338,7 @@ void *PoolAllocator::alloc(size_t size)
  *
  * @param ptr Pointer to allocated block.
  */
-void PoolAllocator::free(void *ptr)
+void PoolAllocator::ifree(void *ptr)
 {
 	/* Get a pointer to the real beginning of the allocblock */
 	T_allocblock *block=(T_allocblock*)((unsigned int)ptr -sizeof(T_PoolInfo*));

@@ -17,12 +17,14 @@
 #include "main.hxx"
 #include "logging.hxx"
 #include "network.hxx"
-#include "playerchar.hxx"
+#include "parser.hxx"
+#include "event.hxx"
 
+namespace koalamud {
 /** Initialize a listener object
  * Setup a port listener and update the gui status
  */
-KoalaServer::KoalaServer(unsigned int port, porttype_t newporttype = GAMESERVER)
+Listener::Listener(unsigned int port, porttype_t newporttype = GAMESERVER)
 : QServerSocket(port), _type(newporttype), _port(port)
 {
     /* Create a list item if the gui is active */
@@ -34,10 +36,24 @@ KoalaServer::KoalaServer(unsigned int port, porttype_t newporttype = GAMESERVER)
 									portstr, "Online");
 			srv->statwin()->updatelistencount();
     }
+
+	QString str;
+	QTextOStream os(&str);
+	os << "New ";
+
+	switch (_type)
+	{
+		case GAMESERVER:
+			os << "game server";
+			break;
+	}
+
+	os << " started on port #" << port;
+	Logger::msg(str, Logger::LOG_NOTICE);
 }
 
 /** Destroy a listener object */
-KoalaServer::~KoalaServer()
+Listener::~Listener()
 {
 	/* delete the list item for the port */
 	delete ListenStatusItem;
@@ -49,48 +65,127 @@ KoalaServer::~KoalaServer()
 }
 
 /** Handle a newly accepted connection and bring it into the game world */
-void KoalaServer::newConnection(int socket)
+void Listener::newConnection(int socket)
 {
-	Logger::msg("Accepting new Player connection.");
-	/* FIXME:  This should probably go through a factory of some variety to
-	 * provide some flexibility */
-  new K_PlayerChar(socket);
+	ParseDescriptor *desc;
+
+	/* FIXME:  This should be based on the listener type and in most cases
+	 * simply create a descriptor - not a playerchar object. */
+	switch (_type)
+	{
+		case GAMESERVER:
+			desc = new ParseDescriptor(socket);
+			desc->setParser(new PlayerLoginParser(NULL, desc));
+			break;
+	}
 }
 
-
-/** Construct a new descriptor */
-KoalaDescriptor::KoalaDescriptor(int sock, QObject * parent=NULL, const char *name=NULL)
-      : QSocket( parent, name )
+/** Construct a Descriptor object */
+Descriptor::Descriptor(int sock)
+	: QSocket()
 {
-  connect(this, SIGNAL(readyRead()), SLOT(readclient()));
-  connect(this, SIGNAL(connectionClosed()), SLOT(connectionclosed()));
-  setSocket(sock);
+	connect(this, SIGNAL(readyRead()), SLOT(readClient()));
+	connect(this, SIGNAL(connectionClosed()), SLOT(closed()));
+	setSocket(sock);
+
+	QString str;
+	QTextOStream os(&str);
+	os << "New connection from " << peerAddress().toString();
+	Logger::msg(str);
 }
 
-/** Nothing to do in the destructor */
-KoalaDescriptor::~KoalaDescriptor(void)
-{
-}
-
-/** Read data from the socket and echo it back to the socket
- * @todo Once this code is migrated into the new design, this will need to be
- * changed into a more complete implementation.
+/** Read data from the socket
+ * This version echos all incoming data back out to the network
  */
-void KoalaDescriptor::readclient(void)
+void Descriptor::readClient(void)
 {
-  /* Base class definition will just act as an echo port */
-  while ( canReadLine() )
-  {
-    QTextStream os( this );
-    os << "Read: " << readLine();
-  }
+	QTextStream os(this);
+	while ( canReadLine() )
+	{
+		os << "ECHO: " << readLine();
+	}
+	os << endl;
 }
 
-/** Respond to a closed connection
- * Currently we just destroy any descriptors that are closed.  In the future
- * there will be a bit more cleanup and notifications to be sent.
+/** Connection was closed
+ * Our connection closed.  SelfDestruct
  */
-void KoalaDescriptor::connectionclosed(void)
+void Descriptor::closed(void)
 {
-  delete this;
+	delete this;
 }
+
+/** Send data out to the network
+ * No additional processing is done on the data (subclasses might do some
+ * additional stuff here.
+ */
+void Descriptor::send(QString data)
+{
+	QTextStream os(this);
+	os << data;
+}
+
+/** Handle incoming events */
+bool Descriptor::event(QEvent *event)
+{
+	static bool disconeventposted = false;
+	if (event->type() == EVENT_CHAR_OUTPUT)
+	{
+		CharOutputEvent *ce = (CharOutputEvent *)event;
+		if (ce->_ch->isDisconnecting())
+		{
+			if (disconeventposted)
+			{
+				delete ce->_ch;
+				delete this;
+				return true;
+			}
+			disconeventposted = true;
+			QThread::postEvent(this, new CharOutputEvent(ce->_ch));
+		} else {
+		}
+		return true;
+	}
+	return false;
+}
+
+/** Construct a Descriptor object
+ * @param sock identifier of connected socket.
+ * @param parser Pointer to parser object to start system with
+ */
+ParseDescriptor::ParseDescriptor(int sock, Parser *parser = NULL)
+	: Descriptor(sock), _parse(parser)
+{
+}
+
+/** Read data from the socket
+ * This version passes each line read into the currently connected parser or
+ * discards them if not connected.
+ */
+void ParseDescriptor::readClient(void)
+{
+	while (canReadLine())
+	{
+		if (_parse)
+		{
+			_parse->parseLine(readLine());
+		} else {
+			readLine();
+		}
+	}
+}
+
+/** Destroy a descriptor */
+ParseDescriptor::~ParseDescriptor(void)
+{
+	delete _parse;
+}
+
+/** Attach a new parser and delete the old parser */
+void ParseDescriptor::setParser(Parser *newparse)
+{
+	delete _parse;
+	_parse=newparse;
+}
+
+}; /* end koalamud namespace */

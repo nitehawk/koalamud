@@ -31,8 +31,8 @@ world {
 }
 
 char {
-	SOURCES += char.cpp playerchar.cpp
-	HEADERS += char.hxx playerchar.hxx
+	SOURCES += char.cpp playerchar.cpp skill.cpp
+	HEADERS += char.hxx playerchar.hxx skill.hxx
 }
 
 cmd {

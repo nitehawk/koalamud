@@ -69,6 +69,11 @@ QString Language::morphString(QString in, int know)
 		for (int i=0; i < replace; i++)
 		{
 			int randpos = (int)(msglen*(random()/(RAND_MAX+1.0)));
+			if (in[randpos-1] == '|')
+			{
+				--i;
+				continue;
+			}
 			out[randpos] = mapChar(in[randpos]);
 		}
 	} else if (know <= 5) {
@@ -76,6 +81,11 @@ QString Language::morphString(QString in, int know)
 		 * morphed */
 		for (int i=0; i < msglen; i++)
 		{
+			if (in[i] == '|')
+			{
+				++i;
+				continue;
+			}
 			out[i] = mapChar(in[i]);
 		}
 	} else {
@@ -83,6 +93,11 @@ QString Language::morphString(QString in, int know)
 		 * 100.  If the random number is greater then know, we morph it. */
 		for (int i=0; i < msglen; i++)
 		{
+			if (in[i] == '|')
+			{
+				++i;
+				continue;
+			}
 			if ((100*(random()/(RAND_MAX+1.0)))> know)
 			{
 				out[i] = mapChar(in[i]);
@@ -243,11 +258,15 @@ class LangList : public Command
 				 << "|MLanguageID    Short Name         Language Name|x" << endl;
 
 			QDictIterator<Language> lang(languageMap);
+			os.setf(QTextStream::left);
 			for( ; lang.current(); ++lang )
 			{
-				os << "  " << (*lang)->getID() << "      "
-					 << (*lang)->getShort() << "      "
-					 << (*lang)->getName() << endl;
+				os.width(14);
+				os << (*lang)->getID();
+				os.width(19);
+				os << (*lang)->getShort();
+				os.width(0);
+				os << (*lang)->getName() << endl;
 			}
 			
 			os << endl;

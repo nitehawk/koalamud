@@ -160,7 +160,6 @@ CommandTree::CommandTreeNode *CommandTree::find_abbrev(QString cmd)
 	bool done = false;
 	unsigned short len;
 	const char *ccmd = cmd.latin1();
-	QRegExp rx(cmd);
 
 	if ((len = cmd.length()) < 1)
 	{
@@ -174,7 +173,7 @@ CommandTree::CommandTreeNode *CommandTree::find_abbrev(QString cmd)
 		if (cmd == loc->_name)
 		{
 			return loc;
-		} else if (rx.search(loc->_name) == 0) { // abbreviation match
+		} else if (loc->_name.startsWith(cmd)) { // abbreviation match
 			return loc;
 		} else if (len == loc->depth) // we're at the end of cmd with no match
 			break;

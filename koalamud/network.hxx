@@ -88,6 +88,11 @@ class Descriptor : public QSocket
 	public:
 		virtual void send(QString sendthis);
 		virtual bool event(QEvent *event);
+		void notifyOutput(Char *ch);
+
+	protected:
+		/** True if an event is posted */
+		bool outputEventPosted;
 
 	private slots:
 		virtual void readClient(void);

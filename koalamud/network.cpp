@@ -82,7 +82,7 @@ void Listener::newConnection(int socket)
 
 /** Construct a Descriptor object */
 Descriptor::Descriptor(int sock)
-	: QSocket()
+	: QSocket(), outputEventPosted(false)
 {
 	connect(this, SIGNAL(readyRead()), SLOT(readClient()));
 	connect(this, SIGNAL(connectionClosed()), SLOT(closed()));
@@ -105,6 +105,16 @@ void Descriptor::readClient(void)
 		os << "ECHO: " << readLine();
 	}
 	os << endl;
+}
+
+/** If there is not an unprocessed event for output, post one */
+void Descriptor::notifyOutput(Char *ch)
+{
+	if (!outputEventPosted)
+	{
+		outputEventPosted = true;
+		QThread::postEvent(this, new CharOutputEvent(ch));
+	}
 }
 
 /** Connection was closed
@@ -131,6 +141,7 @@ bool Descriptor::event(QEvent *event)
 	static bool disconeventposted = false;
 	if (event->type() == EVENT_CHAR_OUTPUT)
 	{
+		outputEventPosted = false;
 		CharOutputEvent *ce = (CharOutputEvent *)event;
 		if (ce->_ch->isDisconnecting())
 		{

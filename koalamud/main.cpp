@@ -70,7 +70,9 @@ MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
 
 }
 
-/** Start everything running */
+/** Start everything running
+ * @todo Port information should be loaded from the database
+ */
 void MainServer::run(void)
 {
 	/* This will be replaced with exception handling */
@@ -80,9 +82,8 @@ void MainServer::run(void)
 	Logger::msg("Starting listeners", Logger::LOG_NOTICE);
 
 	/* Start a listener */
-	/* FIXME:  This information should be retrieved from the database */
-	new KoalaServer(4444);
-	new KoalaServer(6464);
+	new koalamud::Listener(4444);
+	new koalamud::Listener(6464);
 
 	/* Update status bar */
 	if (_guiactive) {

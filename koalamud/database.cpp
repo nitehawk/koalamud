@@ -190,7 +190,7 @@ void Database::checkschema(void)
 				QString q;
 				QTextOStream qos(&q);
 				qos << "create table zone (" << endl;
-				qos << "zoneid int not null auto_increment," << endl;
+				qos << "zoneid int not null," << endl;
 				qos << "name varchar(30) not null," << endl;
 				qos << "description varchar(255)," << endl;
 				qos << "status set('Online','OLC') default 'Online' not null," << endl;
@@ -224,10 +224,10 @@ void Database::checkschema(void)
 				QString q;
 				QTextOStream qos(&q);
 				qos << "create table room (" << endl;
+				qos << "zone int not null," << endl;
 				qos << "latitude int not null," << endl;
 				qos << "longitude int not null," << endl;
 				qos << "elevation int not null," << endl;
-				qos << "zone int not null default 1," << endl;
 				qos << "title varchar(50) not null," << endl;
 				qos << "flags set('levelrest','regen','dark','deathtrap',";
 				qos << "'nomob','safe','savespot','recallspot','notrack',";
@@ -238,7 +238,7 @@ void Database::checkschema(void)
 				qos << "default 'field' not null," << endl;
 				qos << "plrlimit int not null default 0," << endl;
 				qos << "description text," << endl;
-				qos << "primary key (latitude,longitude,elevation)," << endl;
+				qos << "primary key (zone,latitude,longitude,elevation)," << endl;
 				qos << "foreign key zonelink (zone) references zone (zoneid)" << endl;
 				qos << " on delete set default" << endl;
 				qos << ");";
@@ -271,8 +271,8 @@ void Database::checkschema(void)
 			{
 				QString q;
 				QTextOStream qos(&q);
-				qos << "insert into zone (name, description, status) values" << endl;
-				qos << "('Junk Zone', 'Default zone for miscelaneous junk'," << endl;
+				qos << "insert into zone values" << endl;
+				qos << "(0,'Junk Zone', 'Default zone for miscelaneous junk'," << endl;
 				qos << "'Online,OLC');";
 				if (!query.exec(q))
 				{
@@ -296,17 +296,17 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
-		case 5: /* {{{ db at version 5, Add empty root #1 */
+		case 5: /* {{{ db at version 5, Add empty room #1 */
 		{
 			cout << "Database schema at version 5, upgrading to version 6" << endl;
 			{
 				QString q;
 				QTextOStream qos(&q);
-				qos << "insert into room (latitude, longitude, elevation," << endl;
-				qos << "title, zone, flags, description)" << endl;
+				qos << "insert into room (zone,latitude, longitude, elevation," << endl;
+				qos << "title, flags, description)" << endl;
 				qos << "values" << endl;
-				qos << "(0,0,0,'The Origin',";
-				qos << "1, 'safe,savespot,recallspot'," << endl;
+				qos << "(0,0,0,0,'The Origin',";
+				qos << "'safe,savespot,recallspot'," << endl;
 				qos << "'This empty room is the origin of the world');";
 				if (!query.exec(q))
 				{
@@ -571,6 +571,41 @@ void Database::checkschema(void)
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 13" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 13: /* {{{ db at version 13, Add last name to players table */
+		{
+			cout << "Database schema at version 13, upgrading to version 14"<< endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "alter table players" << endl
+						<< "add inroomzone int not null default 0 after lastlogin,"
+						<< endl
+						<< "add lastname varchar(40) after name," << endl
+			<< "add foreign key room (inroomzone,inroomlat,inroomlong,inroomelev) "
+						<< "references room (zone,longitude,latitude,elevation) "
+						<< "on delete set default;";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 14" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '14'" << endl;
+				qos << "where vname='SchemaVersion';";
+				schemaversion++;
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 14" << endl;
 					cout << "Query: " << q << endl;
 					return;
 				}

@@ -172,6 +172,8 @@ class Say : public Command
 				maincmdtree->addcmd("gossip", this, 1);
 				maincmdtree->addcmd("tell", this, 2);
 				maincmdtree->addcmd("say", this, 3);
+				maincmdtree->addcmd("'", this, 3);
+				maincmdtree->addcmd(";", this, 1);
 			}
 
 			/** Handle Command object creation */

@@ -14,18 +14,48 @@
 
 #define KOALA_DATABASE_CXX "%A%"
 
-#include <qsqldatabase.h>
-
 #include "database.hxx"
 
-/* SQL server login information */
-#define SQLDRIVER "QMYSQL3"
-#define SQLHOST "localhost"
-#define SQLUSER "koalamud"
-#define SQLPASS "k23hjdsav"
-#define SQLDB "koalamud"
+namespace koalamud {
 
-bool checkandupgradeschema(void)
+/** Setup connection to database server
+ * This function opens a connection to the specified database server with the
+ * specified options.  It also calls the schema checking function to make sure
+ * our database tables are up to date.
+ * @param user Database user for logging into DB server
+ * @param pass Database login password
+ * @param db Database name
+ * @param server Database server address
+ * @param driver Qt Database driver - QMYSQL3 is the only tested driver
+ */
+Database::Database(QString user="koalamud", QString pass="k23hjdsav",
+							 QString db="koalamud", QString server="localhost",
+							 QString driver="QMYSQL3")
+			: dbonline(false), defaultDB(NULL)
+{
+	defaultDB = QSqlDatabase::addDatabase( driver );
+	if (!defaultDB)
+		return;
+
+	defaultDB->setDatabaseName( db );
+	defaultDB->setUserName( user );
+	defaultDB->setPassword( pass );
+	defaultDB->setHostName( server );
+
+	if ( !defaultDB->open() )
+		return;
+
+	checkschema();
+}
+
+/** Shutdown database connections */
+Database::~Database(void)
+{
+	defaultDB->close();
+}
+
+/** Validate and upgrade database schema */
+void Database::checkschema(void)
 {
 	int schemaversion = 0;
 	QSqlQuery query;
@@ -78,7 +108,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 1" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -90,7 +120,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 1" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -114,7 +144,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 2" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -127,7 +157,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 2" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -147,7 +177,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 3" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -160,7 +190,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 3" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -194,7 +224,7 @@ bool checkandupgradeschema(void)
 					cout << "FATAL: error upgrading schema to version 4" << endl;
 					cout << "Error: " << query.lastError().databaseText() << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -207,7 +237,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 4" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -224,7 +254,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 5" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -237,7 +267,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 5" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -257,7 +287,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 6" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -270,7 +300,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 6" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -291,7 +321,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 7" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 			{
@@ -304,7 +334,7 @@ bool checkandupgradeschema(void)
 				{
 					cout << "FATAL: error upgrading schema to version 7" << endl;
 					cout << "Query: " << q << endl;
-					return false;
+					return;
 				}
 			}
 		} /* }}} */
@@ -313,26 +343,7 @@ bool checkandupgradeschema(void)
 			cout << "Database schema at version 7 and current" << endl;
 		} /* }}} */
 	}
-	return true;
+	dbonline = true;
 }
 
-bool initdatabasesystem(void)
-{
-	QSqlDatabase *defaultDB = QSqlDatabase::addDatabase( SQLDRIVER );
-	if ( defaultDB ) {
-		defaultDB->setDatabaseName( SQLDB );
-		defaultDB->setUserName( SQLUSER );
-		defaultDB->setPassword( SQLPASS );
-		defaultDB->setHostName( SQLHOST );
-
-		if ( defaultDB->open() ) {
-			/* Database is open.  Lets check the schema version and upgrade the
-			 * database if needed */
-			if (checkandupgradeschema())
-				return true;
-			else
-				return false;
-		}
-	}
-	return false;
-}
+}; /** end koalamud namespace */

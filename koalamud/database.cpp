@@ -696,6 +696,90 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
+		case 16: /* {{{ db at version 16, Add roomexits table */
+		{
+			cout << "Database schema at version " << schemaversion
+					 << ", upgrading to version " << schemaversion+1 << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table roomexits (" << endl
+						<< "r1zone int not null," << endl
+						<< "r1lat int not null," << endl
+						<< "r1long int not null," << endl
+						<< "r1elev int not null," << endl
+						<< "r2zone int not null," << endl
+						<< "r2lat int not null," << endl
+						<< "r2long int not null," << endl
+						<< "r2elev int not null," << endl
+						<< "name varchar(20)," << endl
+						<< "keyobj int not null default 0," << endl
+						<< "flags set('DOOR', 'LOCKABLE', 'LOCKED', 'PICKPROOF'," << endl
+						<< "'CLOSED', 'MAGICLOCK', 'HIDDEN', 'TRAPPED'," << endl
+						<< "'MAGICPROOF', 'BASHPROOF', 'TWOWAY')," << endl
+						<< "direction varchar(10)," << endl
+						<< "primary key (r1zone, r1lat, r1long, r1elev,"
+						<< "r2zone, r2lat, r2long, r2elev, direction));";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion+1 << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '" << ++schemaversion << "'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 17: /* {{{ db at version 17, Change room Flags column */
+		{
+			cout << "Database schema at version " << schemaversion
+					 << ", upgrading to version " << schemaversion+1 << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "alter table room" << endl
+						<< "change flags "
+						<< "flags set('levelrest','regen','deathtrap',"
+						<< "'nonpc','safe','savespot','recallspot','notrack',"
+						<< "'nomagic','noteleport', 'dizzy') default '' not null," << endl
+						<< "add lightlev smallint not null default 50"
+						<< ";";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion+1 << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '" << ++schemaversion << "'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
 		default:  /* {{{ Schema version is current */
 		{
 			cout << "Database schema at version " << schemaversion 

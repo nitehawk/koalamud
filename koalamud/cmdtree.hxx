@@ -94,6 +94,9 @@ class CommandTree {
 			{ koalamud::PoolAllocator::free(ptr); }
 
 		bool addcmd(QString name, CommandFactory *fact, unsigned int id);
+		QString displayBranch();
+		QStringList displayBranch(CommandTreeNode *branch,
+													QString indent = "");
 
 		CommandTreeNode *find_full(QString cmd);
 		CommandTreeNode *find_abbrev(QString cmd);
@@ -106,7 +109,7 @@ class CommandTree {
 		 * @param abbrev true if we want to match abbreviations
 		 * @return pointer to new command object or null if it could not be found.
 		 */
-		Command *findandcreate(QString cmd, Char *ch, bool abbrev = false)
+		Command *findandcreate(QString &cmd, Char *ch, bool abbrev = false)
 		{
 			CommandTreeNode *cmdptr = NULL;
 			
@@ -115,8 +118,12 @@ class CommandTree {
 			else
 				cmdptr = find_full(cmd);
 
+
 			if (cmdptr)
+			{
+				cmd = cmd.mid(cmdptr->_name.length());
 				return cmdptr->createcommand(ch);
+			}
 
 			return NULL;
 		}

@@ -780,6 +780,43 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
+		case 18: /* {{{ db at version 18, Add skilllevels table */
+		{
+			cout << "Database schema at version " << schemaversion
+					 << ", upgrading to version " << schemaversion+1 << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table skilllevels (" << endl
+						<< "pid int not null," << endl
+						<< "skid char(5) not null," << endl
+						<< "learned tinyint not null default 1," << endl
+						<< "primary key (pid, skid)," << endl
+						<< "foreign key fk_pid (pid) references players (playerid) "
+						<< "match full on delete cascade );";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion+1 << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '" << ++schemaversion << "'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version "
+							 << schemaversion << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
 		default:  /* {{{ Schema version is current */
 		{
 			cout << "Database schema at version " << schemaversion 

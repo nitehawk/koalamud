@@ -17,6 +17,7 @@
 #include <qstatusbar.h>
 
 #include "main.hxx"
+#include "database.hxx"
 #include "network.hxx"
 #include "koalastatus.h"
 #include "cmd.hxx"
@@ -26,9 +27,18 @@ int main( int argc, char **argv )
 	executor = new ZThread::PoolExecutor<false>(TPMIN, TPMAX);
   guiactive = true;
 
-    /* FIXME:  we need to scan argv for an argument to turn off the gui */
-
+  /* FIXME:  we need to scan argv for an argument to turn off the gui */
   QApplication a( argc, argv, guiactive );
+
+	/* Start database */
+	if (!initdatabasesystem())
+	{
+		/* Houston, we have a problem! */
+		cerr << "FATAL:  Unable to connect to SQL server!" << endl;
+		executor->cancel();
+		executor->join();
+		return 1;
+	}
 
    if (guiactive) {
      stat = new KoalaStatus();
@@ -39,6 +49,7 @@ int main( int argc, char **argv )
 
 	/* Load commands */
 	initcmddict();
+	
 
 	/* Start a listener */
 	 new KoalaServer(4444);

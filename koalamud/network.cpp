@@ -348,6 +348,7 @@ void Descriptor::send(QString data)
 				pos++;
 			}
 		}
+		++outpos = '\0';
 		/* Put this on the output buffer */
 		char *bufpos = outBuffer.getTail();
 		int outlen = strlen(dataout);
@@ -359,7 +360,7 @@ void Descriptor::send(QString data)
 	} else {
 		/* Put this on the output buffer */
 		char *bufpos = outBuffer.getTail();
-		int outlen = strlen(datain);
+		int outlen = inlen;
 		if (outlen > outBuffer.getFree())
 			outlen = outBuffer.getFree();
 		strncpy(bufpos, datain, outlen);

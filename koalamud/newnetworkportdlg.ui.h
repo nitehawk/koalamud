@@ -8,12 +8,13 @@
 
 #include "network.hxx"
 
+/** Open a new listener port */
 void NewNetworkPortDlg::openPort()
 {
   /* We need to open a new port here - Server Class will take care of putting itself
    * the listener list and making sure the same port doesn't get opened multiple
    * times, etc. */
-  new KoalaServer(newport->value());   
+  new koalamud::Listener(newport->value());   
 
   done(Accepted);
 }

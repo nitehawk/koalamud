@@ -14,6 +14,7 @@
 
 #define KOALA_CMD_CXX "%A%"
 
+#include "main.hxx"
 #include "cmd.hxx"
 #include "cmdtree.hxx"
 
@@ -93,6 +94,27 @@ class Quit : public Command
 
 };
 
+/** shutdown command class */
+class Shutdown : public Command
+{
+	public:
+		/** Pass through constructor */
+		Shutdown(K_PlayerChar *ch) : Command(ch) {}
+		/** Run shutdown command */
+		virtual unsigned int run(QString cmd, QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
+
+			os << "KoalaMud Server shutting down." << endl;
+			_ch->sendtochar(str);
+
+			srv->shutdown(0);
+			return 0;
+		}
+
+};
+
 	}; /* end namespace command */
 
 /** Command Factory for cmd.cpp */
@@ -106,6 +128,7 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 			maincmdtree->addcmd("memstat", this, 1);
 			maincmdtree->addcmd("quit", this, 2);
 			maincmdtree->addcmd("who", this, 3);
+			maincmdtree->addcmd("shutdown", this, 4);
 		}
 
 		/** Handle command object creations */
@@ -119,6 +142,8 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 					return new koalamud::commands::Quit(ch);
 				case 3:
 					return new koalamud::commands::Who(ch);
+				case 4:
+					return new koalamud::commands::Shutdown(ch);
 			}
 			return NULL;
 		}

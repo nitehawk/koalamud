@@ -65,8 +65,10 @@ void Char::channelsendtochar(Char *from, QString templateall,
 		QString endline;
 		QTextOStream os(&endline);
 		os << endl;
+		sendtochar(endline);
 		sendtochar(outmsg);
 		sendtochar(endline);
+		sendPrompt();
 		return;
 	} else
 	{
@@ -80,6 +82,7 @@ void Char::channelsendtochar(Char *from, QString templateall,
 		QString endline;
 		QTextOStream os(&endline);
 		os << endl;
+		sendtochar(endline);
 		sendtochar(outmsg);
 		sendtochar(endline);
 	}
@@ -110,7 +113,7 @@ bool Char::sendtochar(QString data)
 	if (_desc)
 	{
 		_desc->send(data);
-		QThread::postEvent(_desc, new CharOutputEvent(this));
+		_desc->notifyOutput(this);
 		return true;
 	}
 	return false;
@@ -130,7 +133,17 @@ void Char::cmdexectask::run(void)
 	_ch->cmdqueuelock.release();
 
 	/* run command */
-	cmditem->cmd->runCmd(cmditem->args);
+	try {
+		cmditem->cmd->runCmd(cmditem->args);
+	}
+	catch (koalamud::exceptions::cmdpermdenied p)
+	{
+		QString out;
+		QTextOStream os(&out);
+		os << "You do not have permission to run this command." << endl;
+		_ch->sendtochar(out);
+	}
+	_ch->sendPrompt();
 
 	/* cleanup */
 	delete cmditem->cmd;

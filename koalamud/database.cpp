@@ -304,7 +304,7 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
-		case 6: /* {{{ db at version 5, Add room info to player table */
+		case 6: /* {{{ db at version 6, Add room info to player table */
 		{
 			cout << "Database schema at version 6, upgrading to version 7" << endl;
 			{
@@ -374,9 +374,143 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
-		case 8:  /* {{{ Schema version 8 is current */
+		case 8: /* {{{ db at version 8, Add commandgroup table */
 		{
-			cout << "Database schema at version 8 and current" << endl;
+			cout << "Database schema at version 8, upgrading to version 9" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table commandgroup (" << endl;
+				qos << "gid int not null auto_increment primary key," << endl;
+				qos << "gname varchar(50) not null unique" << endl;
+				qos << ");";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 9" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '9'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 9" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 9: /* {{{ db at version 9, Add group membership table */
+		{
+			cout << "Database schema at version 9, upgrading to version 10" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table groupmem (" << endl;
+				qos << "playerid int not null," << endl;
+				qos << "groupid int not null," << endl;
+				qos << "primary key (playerid, groupid)," << endl;
+				qos << "foreign key fk_pid (playerid) references players (playerid),"
+						<< endl;
+				qos << "foreign key fk_gid (groupid) references commandgroup (gid)"
+						<< endl;
+				qos << ");";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 10" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '10'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 10" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 10: /* {{{ db at version 10, Add command permissions table */
+		{
+			cout << "Database schema at version 10, upgrading to version 11" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table cmdperm (" << endl;
+				qos << "playerid int not null," << endl;
+				qos << "cmdname varchar(25) not null," << endl;
+				qos << "allowed enum('no', 'yes') not null default 'no'," << endl;
+				qos << "primary key (playerid, cmdname)," << endl;
+				qos << "foreign key fk_pid (playerid) references players (playerid)"
+						<< endl;
+				qos << ");";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 11" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '11'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 11" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 11: /* {{{ db at version 11, Add default command groups */
+		{
+			cout << "Database schema at version 11, upgrading to version 12" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "insert into commandgroup (gname) values" << endl;
+				qos << "('Implementor')," << endl;
+				qos << "('Builder')," << endl;
+				qos << "('Coder')," << endl;
+				qos << "('Immortal');";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 12" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '12'" << endl;
+				qos << "where vname='SchemaVersion';";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 12" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		case 12:  /* {{{ Schema version 12 is current */
+		{
+			cout << "Database schema at version 12 and current" << endl;
 		} /* }}} */
 	}
 	dbonline = true;

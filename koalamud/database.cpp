@@ -670,7 +670,7 @@ void Database::checkschema(void)
 						<< "name varchar(50) not null unique," << endl
 						<< "parentid char(5) not null," << endl
 						<< "charset varchar(50) not null," << endl
-						<< "notes varchar(255),
+						<< "notes varchar(255)," << endl
 						<< "difficulty smallint not null default 50," << endl
 						<< "shortname varchar(20) not null);";
 				if (!query.exec(q))

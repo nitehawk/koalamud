@@ -667,10 +667,12 @@ void Database::checkschema(void)
 				QTextOStream qos(&q);
 				qos << "create table languages (" << endl
 						<< "langid char(5) not null primary key," << endl
-						<< "name varchar(20) not null unique," << endl
+						<< "name varchar(50) not null unique," << endl
 						<< "parentid char(5) not null," << endl
 						<< "charset varchar(50) not null," << endl
-						<< "notes varchar(255) );";
+						<< "notes varchar(255),
+						<< "difficulty smallint not null default 50," << endl
+						<< "shortname varchar(20) not null);";
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version "

@@ -15,6 +15,7 @@
 #define KOALA_DATABASE_CXX "%A%"
 
 #include "database.hxx"
+#include "logging.hxx"
 
 namespace koalamud {
 
@@ -54,7 +55,26 @@ Database::~Database(void)
 	defaultDB->close();
 }
 
-/** Validate and upgrade database schema */
+/** Validate and upgrade database schema
+	 * 
+	 * @note  There are *NO* break statements between cases.
+	 * @note  This list *is* very order sensitive.  Changing the order of items
+	 * *will* break schema upgrades
+	 * @note  Since the overall schema version number really doesn't have an
+	 * upper limit, and to limit possible failure modes for upgrades, it is
+	 * probably best to limit each schema version upgrade to two queries:  one
+	 * to update table structures, one to update the schema version.  Having a
+	 * group of updates that require multiple schema version updates really
+	 * won't be a problem, honest.  The benefit is that a failed query is only
+	 * going to affect a single query in a single version.  Otherwise if there
+	 * were three table update querys and the third one failed, it would not be
+	 * possible to fix only the third query and run the update again.  it would
+	 * have to be run manually or moved to a new version block anyway.  The
+	 * single update per version rule ensures that we only need to fix the one
+	 * query and compile to continue schema updates.  It is acceptable, and
+	 * encourages to group updates to each table in a single update if they are
+	 * all being made at the same time.
+	 */
 void Database::checkschema(void)
 {
 	int schemaversion = 0;
@@ -116,6 +136,7 @@ void Database::checkschema(void)
 				QTextOStream qos(&q);
 				qos << "insert into config (vname, vval) values" << endl;
 				qos << "('SchemaVersion', '1');";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 1" << endl;
@@ -153,6 +174,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '2'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 2" << endl;
@@ -186,6 +208,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '3'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 3" << endl;
@@ -233,6 +256,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '4'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 4" << endl;
@@ -263,6 +287,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '5'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 5" << endl;
@@ -296,6 +321,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '6'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 6" << endl;
@@ -330,6 +356,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '7'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 7" << endl;
@@ -366,6 +393,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '8'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 8" << endl;
@@ -397,6 +425,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '9'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 9" << endl;
@@ -433,6 +462,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '10'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 10" << endl;
@@ -468,6 +498,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '11'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 11" << endl;
@@ -500,6 +531,7 @@ void Database::checkschema(void)
 				qos << "update config" << endl;
 				qos << "set vval = '12'" << endl;
 				qos << "where vname='SchemaVersion';";
+				schemaversion++;
 				if (!query.exec(q))
 				{
 					cout << "FATAL: error upgrading schema to version 12" << endl;
@@ -508,9 +540,46 @@ void Database::checkschema(void)
 				}
 			}
 		} /* }}} */
-		case 12:  /* {{{ Schema version 12 is current */
+		case 12: /* {{{ db at version 12, Add help table */
 		{
-			cout << "Database schema at version 12 and current" << endl;
+			cout << "Database schema at version 12, upgrading to version 13" << endl;
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "create table helptext (" << endl;
+				qos << "helpid int not null auto_increment primary key," << endl;
+				qos << "title varchar(80) not null," << endl;
+				qos << "keywords varchar(254)," << endl;
+				qos << "body text not null," << endl;
+				qos << "index idx_kw (keywords)," << endl;
+				qos << "fulltext (title, keywords, body)" << endl;
+				qos << ");";
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 13" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+			{
+				QString q;
+				QTextOStream qos(&q);
+				qos << "update config" << endl;
+				qos << "set vval = '13'" << endl;
+				qos << "where vname='SchemaVersion';";
+				schemaversion++;
+				if (!query.exec(q))
+				{
+					cout << "FATAL: error upgrading schema to version 13" << endl;
+					cout << "Query: " << q << endl;
+					return;
+				}
+			}
+		} /* }}} */
+		default:  /* {{{ Schema version is current */
+		{
+			cout << "Database schema at version " << schemaversion 
+					 << " and current." << endl;
 		} /* }}} */
 	}
 	dbonline = true;

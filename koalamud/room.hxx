@@ -65,16 +65,21 @@ class RoomExit
 			FLAG_MAGICPROOF,
 			/** Door is bash proof - no muscling our way in */
 			FLAG_BASHPROOF,
+			/** Two way exit */
+			FLAG_TWOWAY,
 			/** This must be the last flag */
 			FLAG_ENDLIST
 		} flag_t;
-		
+
 	public:
 		/** Initialize a room exit */
-		RoomExit(Room *destroom, flag_t exitflags, QString name=NULL,
+		RoomExit(Room *destroom, int exitflags, QString name=NULL,
 							unsigned int keyobj=0)
 			: _name(name), dest(destroom), flags(exitflags), keynum(keyobj)
 		{}
+		static void makeExits(int, int, int, int,
+													int, int, int, int, QString, int, QString, QString);
+		static void initializeMaps(void);
 		
 	public: /* Operators */
 		/** Operator new overload */
@@ -142,10 +147,13 @@ class Room
 				/** No magic allowed in this room. */
 				FLAG_NOMAGIC,
 				/** Teleport command can choose this room as a target. */
-				FLAG_TELEPORT,
+				FLAG_NOTELEPORT,
+				/** Dizzy room */
+				FLAG_DIZZY,
 				/** Last flag - used for sizing bitset */
 				FLAG_ENDLIST
 				} flags_t;
+
 		/** Room Types
 		 * @notes Generally speaking, Room types INDOORS, COVERED, FIELD, and CITY
 		 * will be found inside of hand built areas, and the remaining types will
@@ -214,10 +222,17 @@ class Room
 		void moveRoom(int, int, int, int);
 		QString displayRoom(Char *ch, bool brief=false);
 		void sendToRoom(Char *from, Char *to, QString msg, QString fromtmpl,
-						QString totmpl, QString roomtmpl);
+						QString totmpl, QString roomtmpl, bool sendPrompt=true);
+		/** Attach an exit to a direction */
+		void attachExit(RoomExit *re, directions dir)
+			{ if (exits[dir]) delete exits[dir];  exits[dir] = re; }
+		/** Return the exit pointer for a specified direction */
+		RoomExit *getExitFor(directions dir) const { return exits[dir];}
 
 	public:  /* Static functions */
 		static Room *findRoom(int zone, int lat, int longi, int elev);
+		static void loadWorldRooms(void);
+		static void initializeMaps(void);
 		/** Return a string representing a room location */
 		static QString getRef(int zone, int lat, int longi, int elev)
 			{ QString ref; QTextOStream os(&ref);
@@ -247,8 +262,10 @@ class Room
 };
 
 #ifdef KOALA_ROOM_CXX
+/** Map room references to Room pointers */
 QDict<Room> RoomMap(8388607);
 #else
+/** Map room references to Room pointers */
 extern QDict<Room> RoomMap;
 #endif
 

@@ -78,6 +78,40 @@ void CommandTree::destroybranch(CommandTreeNode *branch)
 	}
 }
 
+QString CommandTree::displayBranch(void)
+{
+	QString el;
+	QTextOStream os(&el);
+	os << endl;
+	return displayBranch(rootnode).join(el);
+}
+
+/** Build a QString of a branch of the command tree
+ * If branch is null, start at the root.
+ * @note Recursive function */
+QStringList CommandTree::displayBranch(CommandTreeNode *branch,
+										QString indent = "")
+{
+	QStringList out;
+	if (branch != rootnode)
+	{
+		QString cur;
+		QTextOStream os(&cur);
+		os << indent << branch->depth << "  " <<  branch->_name;
+		out << cur;
+	}
+	indent += "  ";
+
+	for (unsigned int i = 0; i < branch->numedges; i++)
+	{
+		if (branch->edges[i])
+		{
+			out += displayBranch(branch->edges[i], indent);
+		}
+	}
+	return out;
+}
+
 /** Add a command to the tree
  * Inject the given command into the tree, adjusting the position of existing
  * nodes as needed to maintain the correct structure of the tree.
@@ -95,20 +129,70 @@ bool CommandTree::addcmd(QString name, CommandFactory *fact, unsigned int id)
 	unsigned int len = name.length();
 	CommandTreeNode *loc = rootnode;
 	const char *cname = name.latin1();
+	short edge;
+	short specialedge = loc->edgenum(';');
 
-	/* FIXME: We still need to handle non-alpha commands */
-	for (unsigned int i = 0; i< len; i++)
+	for (int i = 0; i< len; i++)
 	{
-		/* If the edge is null, we just put our new node into that spot */
-		if (loc->edges[loc->edgenum(cname[i])] == NULL)
+		edge = loc->edgenum(cname[i]);
+
+		/* non-alpha chars need special handling.  We need to go down the tree
+		 * until we find an edge that matches the current char or is empty */
+		if (edge == specialedge)
 		{
-			loc->edges[loc->edgenum(cname[i])] = newnode;
+			while (!(loc->_name[i] == cname[i]) && loc->edges[edge])
+			{
+				loc = loc->edges[edge];
+			}
+		}
+
+		/* If the edge is null, we just put our new node into that spot */
+		if (loc->edges[edge] == NULL)
+		{
+			loc->edges[edge] = newnode;
 			newnode->parent = loc;
-			newnode->depth = i+1;
+			if (edge == specialedge)
+			{
+				newnode->depth = i;
+			} else {
+				newnode->depth = i+1;
+			}
 			return true;
 		}
-		loc = loc->edges[loc->edgenum(cname[i])];
+		loc = loc->edges[edge];
+		
+		/* Make another try for fitting a short command into the tree */
+		if (len < loc->_name.length())
+		{
+			/* Swap positions */
+			CommandTreeNode *tmp = newnode;
+			newnode = loc;
+			loc = tmp;
+
+			/* Copy edges array and clear the edges array in the new newnode */
+			for (unsigned int j = 0; j < CommandTreeNode::numedges; j++)
+			{
+				loc->edges[j] = newnode->edges[j];
+				newnode->edges[j] = NULL;
+			}
+			loc->parent = newnode->parent;
+			loc->parent->edges[loc->edgenum(cname[i])] = loc;
+			if (edge == specialedge)
+			{
+				loc->depth = i;
+			} else {
+				loc->depth = i+1;
+			}
+
+			/* Start placement search back at the top with the longer command */
+			cname = newnode->_name.latin1();
+			edge = newnode->edgenum(cname[i]);
+			len = newnode->_name.length();
+			loc = rootnode;
+			i = -1;
+		}
 	}
+
 
 	delete newnode;
 	return false;
@@ -130,19 +214,24 @@ CommandTree::CommandTreeNode *CommandTree::find_full(QString cmd)
 	{
 		return NULL;
 	}
-
-	/* FIXME: We need to handle non-alpha commands too */
+	
+	short specialedge = loc->edgenum(';');
+	short curedge = loc->edgenum(ccmd[loc->depth]);
 	do
 	{
 		/* If the strings match, we're done */
-		if (cmd == loc->_name)
+		if (cmd == loc->_name ||
+				(curedge == specialedge && cmd.left(loc->depth+1) == loc->_name
+					&& (loc->edgenum(ccmd[loc->depth + 1]) != specialedge
+							&& !loc->edges[loc->edgenum(ccmd[loc->depth + 1])])))
 		{
 			return loc;
 		} else if (len == loc->depth) // we're at the end of cmd with no match
 			break;
 
 		/* If it doesn't match, we need to traverse down a level.  */
-		if ((loc = loc->edges[loc->edgenum(ccmd[loc->depth])]) == NULL)
+		curedge = loc->edgenum(ccmd[loc->depth]);
+		if ((loc = loc->edges[curedge]) == NULL)
 			break;
 	} while (!done);
 	
@@ -166,11 +255,15 @@ CommandTree::CommandTreeNode *CommandTree::find_abbrev(QString cmd)
 		return NULL;
 	}
 
-	/* FIXME: We need to handle non-alpha commands too */
+	short specialedge = loc->edgenum(';');
+	short curedge = loc->edgenum(ccmd[loc->depth]);
 	do
 	{
 		/* If the strings match, we're done */
-		if (cmd == loc->_name)
+		if (cmd == loc->_name ||
+				(curedge == specialedge && cmd.left(loc->depth+1) == loc->_name
+					&& (loc->edgenum(ccmd[loc->depth + 1]) != specialedge
+							&& !loc->edges[loc->edgenum(ccmd[loc->depth + 1])])))
 		{
 			return loc;
 		} else if (loc->_name.startsWith(cmd)) { // abbreviation match
@@ -179,8 +272,10 @@ CommandTree::CommandTreeNode *CommandTree::find_abbrev(QString cmd)
 			break;
 
 		/* If it doesn't match, we need to traverse down a level.  */
-		if ((loc = loc->edges[loc->edgenum(ccmd[loc->depth])]) == NULL)
+		curedge = loc->edgenum(ccmd[loc->depth]);
+		if ((loc = loc->edges[curedge]) == NULL)
 			break;
+
 	} while (!done);
 	
 	return NULL;

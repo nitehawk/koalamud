@@ -23,6 +23,7 @@
 
 #include "event.hxx"
 #include "playerchar.hxx"
+#include "cmdtree.hxx"
 
 /* {{{ Constructor */
 K_PlayerChar::K_PlayerChar(int socket, QObject *parent = NULL,
@@ -180,19 +181,6 @@ bool K_PlayerChar::event(QEvent *e)
 	}
 }
 /* }}} event */
-
-/* {{{ runcmd */
-void K_PlayerChar::runcmd(cmdentry_t *cmd, QString word, QString args)
-{
-	if (cmd == NULL)
-		return;
-
-	/* FIXME: */
-	/* We should check that everything is ok for running the command here */
-
-	cmd->cmdfunc(this, word, args);
-}
-/* }}} runcmd */
 
 /* {{{ sendWelcome */
 void K_PlayerChar::sendWelcome(void)
@@ -372,13 +360,16 @@ void K_PlayerChar::parseline(QString line, QString cline, QString cmdword)
 			}
 			break;
 		case STATE_PLAYING:
-			/* If the command exists, run it using 'this->runcmd()' */
-			cmdentry_t *cmd = cmddict[cmdword];
+			/* We use the command tree to search for our command, then call the
+			 * returned pointer's run function */
+			koalamud::Command *cmd = maincmdtree->findandcreate(cmdword, this, true);
 			if (cmd)
 			{
-				runcmd(cmd, cmdword, cline.section(' ', 1));
-			} else
-			{
+				/* FIXME:  We will need to pass the remainder of our input into this
+				 * function */
+				cmd->run(cmdword, cline.section(' ', 1));
+				delete cmd;
+			} else {
 				/* Output an error message */
 				QTextStream os(this);
 				os << _name << ", that command is unknown." << endl;

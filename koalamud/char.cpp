@@ -22,3 +22,8 @@ K_Char::K_Char()
  K_Char::~K_Char()
 {
 }
+
+void K_Char::setName(QString name)
+{
+	_name = name;
+}

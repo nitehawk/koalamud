@@ -80,7 +80,7 @@ void olc::parseLine(QString line)
 				_desc->setParser(_old);
 				return;
 			}
-			if (--field >= 0 && field < fieldlist.count())
+			if (--field >= 0 && field < (int)fieldlist.count())
 			{
 				curfield = fieldlist.at(field);
 				if (curfield->editable)
@@ -116,36 +116,47 @@ void olc::parseLine(QString line)
 		case STATE_EDITFIELD:
 			line.truncate(line.length() - 2);
 			/* Check that our input is in the appropriate range */
-			if (curfield->min > 0 && line.length() < curfield->min)
+			switch (curfield->type)
 			{
-				os << endl << curfield->name << " requires a string at least "
-					 << curfield->min << " characters long." << endl;
-			} else if (curfield->max > 0 && line.length() > curfield->max)
-			{
-				os << endl << curfield->name << " requires a string at most "
-					 << curfield->max << " characters long." << endl;
-			} else {
-				*(curfield->str) = line;
-				os << endl << curfield->name << " has been set." << endl;
+				case FIELD_STRING:
+					if (curfield->min > 0 && line.length() < curfield->min)
+					{
+						os << endl << curfield->name << " requires a string at least "
+							 << curfield->min << " characters long." << endl;
+					} else if (curfield->max > 0 && line.length() > curfield->max)
+					{
+						os << endl << curfield->name << " requires a string at most "
+							 << curfield->max << " characters long." << endl;
+					} else {
+						*(curfield->str) = line;
+						os << endl << curfield->name << " has been set." << endl;
+					}
+					break;
+				case FIELD_INTEGER:
+					if (curfield->min > 0 && line.length() < curfield->min)
+					{
+						os << endl << curfield->name << " requires a number greater than "
+							 << curfield->min << "." << endl;
+					} else if (curfield->max > 0 && line.length() > curfield->max)
+					{
+						os << endl << curfield->name << " requires a number less than "
+							 << curfield->max << "." << endl;
+					} else {
+						*(curfield->numeric) = line.toLong();
+						os << endl << curfield->name << " has been set." << endl;
+					}
+					break;
+				default:
+					break;
 			}
 			curstate = STATE_MAINMENU;
 			dosendmenu = true;
 			break;
 		case STATE_EDITENUM:
-			/* Check that our input is in the appropriate range */
-			if (line.toLong() < curfield->min)
-			{
-				os << endl << curfield->name << " requires a number greater than "
-					 << curfield->min << "." << endl;
-			} else if (line.toLong() > curfield->max)
-			{
-				os << endl << curfield->name << " requires a number less than "
-					 << curfield->max << "." << endl;
-			} else {
-				*(curfield->numeric) = line.toLong();
-				os << endl << curfield->name << " has been set." << endl;
-			}
-			curstate = STATE_MAINMENU;
+			/* We will stay in this state for more than one line of input, so we
+			 * won't always send the main menu from here.
+			 * FIXME:  Implement this.
+			 */
 			dosendmenu = true;
 			break;
 		case STATE_EDITSET:

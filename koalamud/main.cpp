@@ -81,10 +81,15 @@ void MainServer::run(void)
 
 	Logger::msg("Starting listeners", Logger::LOG_NOTICE);
 
-	/* Start a listener */
-	new koalamud::Listener(4444);
-	new koalamud::Listener(6464);
-	new koalamud::Listener(6500);
+	/* Start listeners from database */
+	{
+		QValueList<int> portlist = _kmdb->getListenPorts(_profile);
+		QValueList<int>::iterator cur;
+		for (cur = portlist.begin(); cur != portlist.end(); ++cur)
+		{
+			new koalamud::Listener(*cur);
+		}
+	}
 
 	/* Update status bar */
 	if (_guiactive) {
@@ -172,7 +177,8 @@ QString MainServer::usage(void)
 "  -f         Run server in foreground (default)" << endl <<
 "  -b         Run server in background" << endl <<
 "  -g         disable GUI (default)" << endl <<
-"  -G         enable GUI" << endl;
+"  -G         enable GUI" << endl <<
+"  -r					execution profile" << endl;
 
 	return outstr;
 }

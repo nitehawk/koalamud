@@ -112,6 +112,27 @@ class Quit : public Command
 
 };
 
+/** Save command class */
+class Save : public Command
+{
+	public:
+		/** Pass through constructor */
+		Save(Char *ch) : Command(ch) {}
+		/** Run save command */
+		virtual unsigned int run(QString args)
+		{
+			QString str;
+			QTextOStream os(&str);
+
+			_ch->save();
+
+			os << "Your adventures have been recorded." << endl;
+			_ch->sendtochar(str);
+			return 0;
+		}
+
+};
+
 /** shutdown command class */
 class Shutdown : public Command
 {
@@ -390,6 +411,7 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 			maincmdtree->addcmd("grant", this, 5);
 			maincmdtree->addcmd("look", this, 6);
 			maincmdtree->addcmd("cmdlist", this, 7);
+			maincmdtree->addcmd("save", this, 8);
 		}
 
 		/** Handle command object creations */
@@ -411,6 +433,8 @@ class Cmd_CPP_CommandFactory : public CommandFactory
 					return new koalamud::commands::Look(ch);
 				case 7:
 					return new koalamud::commands::CommandList(ch);
+				case 8:
+					return new koalamud::commands::Save(ch);
 			}
 			return NULL;
 		}

@@ -25,8 +25,8 @@ olc {
 }
 
 world {
-	SOURCES += room.cpp
-	HEADERS += room.hxx
+	SOURCES += room.cpp language.cpp
+	HEADERS += room.hxx language.hxx
 }
 
 char {

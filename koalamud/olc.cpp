@@ -302,15 +302,4 @@ olc::field_t *olc::addField(QString name, fieldtype_t type,
 	return newfield;
 }
 
-/** Escape special characters in @a str for push into mysql
- * This will escape special characters like \ and ' with a \
- */
-QString olc::escapeString(QString str)
-{
-	QString out;
-	out = str.replace(QRegExp("\\"), "\\\\");
-	out = out.replace(QRegExp("'"), "\\'");
-	return out;
-}
-
 }; /* end koalamud namespace */

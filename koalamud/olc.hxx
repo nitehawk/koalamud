@@ -101,9 +101,6 @@ class olc : public Parser
 		virtual bool load(void) = 0;
 
 	public:
-		QString escapeString(QString str);
-	
-	public:
 		field_t *addField(QString name, fieldtype_t type, QString *strval,
 											bool editable, long max = 0, long min=0);
 		field_t *addField(QString name, fieldtype_t type, long *numval,

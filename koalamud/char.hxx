@@ -26,8 +26,11 @@
 /* predefine ourself */
 namespace koalamud {
 	class Char;
+	class Language;
 };
 
+#include "skill.hxx"
+//#include "language.hxx"
 #include "network.hxx"
 #include "cmd.hxx"
 #include "comm.hxx"
@@ -108,6 +111,11 @@ class Char : public QObject
 		virtual void channeldeleted(Channel *chan) { if (chan) return;}
 		/** Handle closing descriptor */
 		virtual void descriptorClosed(void) { _desc = NULL;}
+		virtual int getKnow(QString id);
+		virtual bool setSkillLevel(QString id, int level);
+		/** Get an iterator for the skills list */
+		virtual QDictIterator<SkillRecord> getSkrecIter(void)
+			{ QDictIterator<SkillRecord> skcur(skills); return skcur; }
 
 	public: /* Operators */
 		/** Operator new overload */
@@ -120,12 +128,18 @@ class Char : public QObject
 	protected:
 		/** Character name */
 		QString _name;
+		/** Character last name */
+		QString _lname;
 		/** Pointer to attached descriptor */
 		ParseDescriptor *_desc;
 		/** Disconnecting flag */
 		bool _disconnecting;
 		/** Pointer to room we are in */
 		Room *_inroom;
+		/** Our primary language */
+		Language *priLanguage;
+		/** Our skill records */
+		QDict<SkillRecord> skills;
 
 		/** Our command queue */
 		QPtrQueue<cmdqueueitem> cmdqueue;

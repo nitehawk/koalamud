@@ -29,8 +29,8 @@ char {
 }
 
 cmd {
-	SOURCES += cmd.cpp comm.cpp
-	HEADERS += cmd.hxx comm.hxx
+	SOURCES += cmd.cpp cmdtree.cpp comm.cpp
+	HEADERS += cmd.hxx cmdtree.hxx comm.hxx
 }
 
 gui {

@@ -36,7 +36,7 @@ namespace koalamud {
  * server configuration information from the database.
  */
 MainServer::MainServer( int argc, char **argv ) throw(koalaexception)
-	: _executor(NULL), _guiactive(true), _background(false),
+	: _executor(NULL), _guiactive(false), _background(false),
 		_profile("default")
 {
 	/* Initialize our task pool executor */
@@ -170,8 +170,8 @@ QString MainServer::usage(void)
 "  -h         This help screen" << endl <<
 "  -f         Run server in foreground (default)" << endl <<
 "  -b         Run server in background" << endl <<
-"  -g         disable GUI" << endl <<
-"  -G         enable GUI (default)" << endl;
+"  -g         disable GUI (default)" << endl <<
+"  -G         enable GUI" << endl;
 
 	return outstr;
 }
